@@ -1007,6 +1007,8 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 .sn-more{font:inherit; font-size:11px; font-weight:600; color:#7ee2a8; background:none; border:0; padding:6px 0 0; cursor:pointer}
 .sn-more:hover{text-decoration:underline}
 .pulse button,.nx,.lr{-webkit-tap-highlight-color:transparent}
+@media (max-width:1180px) and (min-width:641px){ .bar .rec span{display:none} .bar .st:not(.go) #stText{display:none} .nav a{padding:5px 9px} .bar{gap:10px} }
+@media (max-width:950px) and (min-width:641px){ .bar .rec{display:none} .fsb,#fsBtn{display:none} }
 @media (max-width:1180px){ .sn-g3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} .sn-g3>.sn-col:last-child{grid-column:1/-1} }
 @media (max-width:760px){
   .sn-g3,.sn-g2{grid-template-columns:minmax(0,1fr)}
@@ -1157,7 +1159,7 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v3';
+var VERSION='v4';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
