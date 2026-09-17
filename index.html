@@ -1157,7 +1157,7 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v2';
+var VERSION='v3';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -1246,7 +1246,7 @@ function shortDiv(n){ return String(n||'').replace(/\s*Division$/,''); }
 function stat(e,name){ var s=(e.stats||[]); for(var i=0;i<s.length;i++) if(s[i].name===name) return s[i]; return null; }
 function statV(e,name){ var s=stat(e,name); return s&&s.value!=null?+s.value:0; }
 function statAb(e,abbr){ var s=(e.stats||[]); for(var i=0;i<s.length;i++) if(s[i].abbreviation===abbr&&s[i].displayValue) return s[i].displayValue; return ''; }
-function parseStand(jx){
+function parseStand(jx,G){ G=G||GAMES;
   var out={byId:{}, confs:[], season:(jx.children&&jx.children[0]&&((jx.children[0].children||[])[0]||{}).standings||{}).season};
   (jx.children||[]).forEach(function(c){
     var conf={name:shortConf(c.name||c.abbreviation), divs:[]};
@@ -1260,7 +1260,7 @@ function parseStand(jx){
           pts:statV(e,'points'), rw:statV(e,'regWins'), row:statV(e,'rotWins'), gf:statV(e,'pointsFor'), ga:statV(e,'pointsAgainst'),
           home:statAb(e,'HOME'), road:statAb(e,'AWAY'), l10:String(statAb(e,'L10')).split(',')[0], strk:(stat(e,'streak')||{}).displayValue||'',
           clinch:(stat(e,'clincher')||{}).displayValue||'', conf:conf.name, div:div.name};
-        r.left=Math.max(0,GAMES-r.gp); r.max=r.pts+2*r.left; r.pp=r.gp?r.pts/(2*r.gp):0;
+        r.left=Math.max(0,G-r.gp); r.max=r.pts+2*r.left; r.pp=r.gp?r.pts/(2*r.gp):0;
         out.byId[id]=r; div.ids.push(id);
       });
       conf.divs.push(div);
@@ -1351,7 +1351,7 @@ function loadToday(){
   return j(API+'/scoreboard?dates='+key+'&limit=100').then(function(x){
     S.todayRaw=x; S.todayKey=key;
     var L=(x.leagues||[])[0]||{};
-    if(L.season){ S.season=L.season.year; S.stype=(L.season.type||{}).type||S.stype; }
+    if(L.season){ S.season=L.season.year; S.stype=(L.season.type||{}).type||S.stype; GAMES=S.season>=2027?84:82; }
     if(L.calendar&&L.calendar.length) S.cal=L.calendar.map(function(c){ return ymd(new Date(typeof c==='string'?c:c.startDate)); });
     S.today=(x.events||[]).map(evG);
     S.day.ev['0']=S.today; S.day.ev['0t']=Date.now();
@@ -1362,7 +1362,7 @@ function loadStand(){
   var y=S.season||new Date().getFullYear()+1;
   return j(STAND+y).then(function(x){ S.cur=parseStand(x); }).then(function(){
     if(S.prev) return;
-    return j(STAND+(y-1)).then(function(x){ S.prev=parseStand(x); }).catch(function(){});
+    return j(STAND+(y-1)).then(function(x){ S.prev=parseStand(x,(y-1)>=2027?84:82); }).catch(function(){});
   });
 }
 function loadDay(off){
@@ -1492,7 +1492,7 @@ function runOdds(){
 function recTxt(r){ return r?r.w+'-'+r.l+'-'+r.otl:'--'; }
 function renderBar(){
   var d=dal();
-  $('favRec').innerHTML=d?(recTxt(d)+'<em>'+d.pts+' PTS</em><span>'+(preseason()?'82 to play':d.left+' left')+'</span>'):'--';
+  $('favRec').innerHTML=d?(recTxt(d)+'<em>'+d.pts+' PTS</em><span>'+(preseason()?GAMES+' to play':d.left+' left')+'</span>'):'--';
   var live=anyLive(), el=$('stBtn');
   $('dot').className='dot'+(live?' on':'');
   var n=S.today.filter(function(g){ return g.st==='in'; }).length;
@@ -1617,7 +1617,7 @@ function renderPath(){
     if(nx&&nx.ty===2) items.push(li('', 'Opening night: '+(nx.h===FAV?'vs ':'at ')+'<b>'+esc(nick(nx.h===FAV?nx.a:nx.h))+'</b>, '+wday(nx.date)+' '+dshort(nx.date)+' at '+puck(nx.date)+'.'));
     else { var op=teamGames(FAV).filter(function(x){ return x.ty===2; })[0]; if(op) items.push(li('', 'Opening night: '+(op.h===FAV?'vs ':'at ')+'<b>'+esc(nick(op.h===FAV?op.a:op.h))+'</b>, '+wday(op.date)+' '+dshort(op.date)+'.')); }
     $('paths').innerHTML=pathCard('west','Before the puck drops','Nothing counts yet. Here is the bar from last year.',
-      'Every team sits on <em>0</em> points with <em>82</em> to play.',null,'',items);
+      'Every team sits on <em>0</em> points with <em>'+GAMES+'</em> to play.',null,'',items);
     $('tool').hidden=true;
     return;
   }
@@ -2597,7 +2597,7 @@ function snPulse(){
   var cur=S.sn.sea==='cur'&&!started();
   if(cur){
     var op=reg[0];
-    cells.push(['0-0-0','Record','82 to play','hero','','#home']);
+    cells.push(['0-0-0','Record',GAMES+' to play','hero','','#home']);
     if(op) cells.push([(op.h===FAV?'vs ':'@ ')+ab(opp(op,FAV)),'Opening night',wday(op.date)+' '+dshort(op.date)+' '+puck(op.date),'','','gid:'+op.id]);
     var pre=gs?gs.filter(function(x){ return x.ty===1; }):[];
     if(pre.length){ var pr=recOf(pre,FAV); cells.push([pr.gp?pr.txt:pre.length,'Preseason',pr.gp?'exhibition record':'exhibition games','','','cal']); }
@@ -2605,7 +2605,7 @@ function snPulse(){
   }
   cells.push([recTxt(r),'Record'+tag,r.pts+' pts in '+r.gp,cur?'':'hero','','log:all']);
   cells.push([r.pts,'Points'+tag,pct3(r.pp)+' point %','','gr','lg:pts']);
-  if(r.gp) cells.push([Math.round(r.pts/r.gp*82),'Points pace','over 82 games','','','chart']);
+  if(r.gp&&!snStatPrev()) cells.push([Math.round(r.pts/r.gp*GAMES),'Points pace','over '+GAMES+' games','','','chart']);
   cells.push([ord(divRk),r.div+tag,spot,'','','#stand']);
   cells.push([ord(confIds.indexOf(FAV)+1),'In the West'+tag,'of 16','','','#stand']);
   cells.push([ord(all.indexOf(FAV)+1),'In the NHL'+tag,'of '+all.length,'','','lg:pts']);
@@ -2643,7 +2643,7 @@ function snNext(){
       '<div class="sn-note">Tap any game on the calendar or the ribbon for the full breakdown.</div>');
     return;
   }
-  var nx=up[0], op=opp(nx,FAV), home=nx.h===FAV, orr=R(op)||(S.prev&&S.prev.byId[op]);
+  var nx=up[0], op=opp(nx,FAV), home=nx.h===FAV, orr=started()?R(op):(S.prev&&S.prev.byId[op]);
   var p=winP(nx.h,nx.a), mine=home?p:1-p;
   var live=nx.st===1;
   var head='<div class="nx" data-gid="'+nx.id+'"><img src="'+esc(logo(op))+'" alt="" onerror="'+onErr(op)+'"><div style="min-width:0"><div class="t"><small>'+(home?'vs':'at')+'</small>'+esc(nick(op))+'</div>'+
@@ -2686,7 +2686,7 @@ function snRib(){
   reg.forEach(function(x){ var r=res(x,FAV); if(!r) return; run=r==='W'?run+1:0; best=Math.max(best,run); pr=r==='L'?0:pr+1; bestP=Math.max(bestP,pr); });
   var body='<div class="rib">'+html+'</div><div class="ribk"><span><i style="background:var(--good)"></i>Win</span><span><i style="background:var(--warn)"></i>OT/SO loss</span><span><i style="background:var(--bad)"></i>Loss</span><span><i style="background:#1d222c"></i>To play</span><span>Notch = home</span></div>'+
     (rr.gp?'<div class="sn-note" style="margin-top:6px">Longest win streak <b style="color:var(--ink)">'+best+'</b> &middot; longest point streak <b style="color:var(--ink)">'+bestP+'</b></div>':'');
-  $('snRib').innerHTML=snCard('All 82',body,'',rr.gp?rr.txt:(reg.length+' games'));
+  $('snRib').innerHTML=snCard('All '+reg.length,body,'',rr.gp?rr.txt:(reg.length+' games'));
 }
 var SPLITS=[
   ['grp','Where'],['home','Home',function(x){ return x.h===FAV; }],['road','Road',function(x){ return x.a===FAV; }],
@@ -2746,8 +2746,9 @@ function snChart(){
   var sd=seedsOf(st,r.conf), cut=st.byId[sd.lastIn];
   var lineN=cy<S.season?82:GAMES, lineP=cut?(cy<S.season?cut.pts:(S.prev?S.prev.byId[seedsOf(S.prev,r.conf).lastIn].pts:92)):92;
   var W=560,H=280,L=30,T=10,B=24,Rr=34;
-  var maxX=live?Math.max(10,Math.max.apply(null,want.map(function(id){ return (ser[id]||[0]).length-1; }))+2):82;
-  maxX=Math.min(82,maxX);
+  var NG=cy<2027?82:GAMES;
+  var maxX=live?Math.max(10,Math.max.apply(null,want.map(function(id){ return (ser[id]||[0]).length-1; }))+2):NG;
+  maxX=Math.min(NG,maxX);
   var maxY=Math.max(20,lineP*maxX/82);
   want.forEach(function(id){ (ser[id]||[]).forEach(function(v){ if(v>maxY) maxY=v; }); });
   maxY=Math.ceil(maxY/20)*20;
