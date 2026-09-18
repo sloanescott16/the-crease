@@ -1159,7 +1159,7 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v4';
+var VERSION='v5';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -1454,23 +1454,41 @@ function simOdds(){
   return {p:made/N, div:divWin/N, top3:top3/N, wc:wc/N, n:N, games:G.length};
 }
 function pctTxt(p){ if(p<=0) return '0%'; if(p>=1) return '100%'; if(p<0.01) return '<1%'; if(p>0.99) return '>99%'; return Math.round(p*100)+'%'; }
+/* movie lines by playoff-odds tier, film titles never shown. One line a day from the tier's pool:
+   each cycle through a pool is a fresh seeded shuffle (same on every device), and any line that ran in
+   the back half of the previous cycle is held to the back half of the next one, so nothing comes round
+   again inside half the pool's length. Pools are 10 to 14 deep, so no line repeats inside a week. */
+function dayQuote(pool){
+  var n=pool.length; if(n<2) return pool[0]||'';
+  var d=new Date(), day=Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5)-20000, h=n>>1;
+  function shuf(c){ var s=(c*2654435761+n*97)|0, o=[], i; for(i=0;i<n;i++) o.push(i);
+    for(i=n-1;i>0;i--){ s=s+0x6D2B79F5|0; var t=Math.imul(s^s>>>15,1|s); t=t+Math.imul(t^t>>>7,61|t)^t;
+      var k=Math.floor(((t^t>>>14)>>>0)/4294967296*(i+1)), x=o[i]; o[i]=o[k]; o[k]=x; }
+    return o; }
+  var c=Math.floor(day/n), prev=null, o;
+  for(var k=0;k<=c;k++){
+    o=shuf(k);
+    if(prev){ var tail={}; for(var i=n-h;i<n;i++) tail[prev[i]]=1;
+      o=o.filter(function(i){return !tail[i];}).concat(o.filter(function(i){return tail[i];})); }
+    prev=o;
+  }
+  return pool[o[day-c*n]];
+}
 var QUOTES=[
-  // [floor, quote, film]  film kept here only, never shown
-  [0,'Game over, man. Game over!','Aliens'],[0,'I\'ll be back.','The Terminator'],
-  [0.001,'So you\'re telling me there\'s a chance!','Dumb and Dumber'],[0.001,'Never tell me the odds!','The Empire Strikes Back'],
-  [0.05,'Hope is a good thing, maybe the best of things.','The Shawshank Redemption'],[0.05,'Just keep swimming.','Finding Nemo'],
-  [0.2,'Great moments are born from great opportunity.','Miracle'],[0.2,'We\'re gonna need a bigger boat.','Jaws'],
-  [0.4,'Life is like a box of chocolates.','Forrest Gump'],[0.4,'May the Force be with you.','Star Wars'],
-  [0.6,'Ducks fly together!','The Mighty Ducks'],[0.6,'I feel the need, the need for speed.','Top Gun'],
-  [0.8,'I love it when a plan comes together.','The A-Team'],[0.8,'Show me the money!','Jerry Maguire'],
-  [0.95,'Old-time hockey!','Slap Shot'],[0.95,'I\'m the king of the world!','Titanic']
+  [0, ["Game over, man. Game over!","I'll be back.","Tomorrow is another day.","Well, nobody's perfect.","Looks like I picked the wrong week to quit sniffing glue.","I'm in a glass case of emotion!","It's just a flesh wound.","Bueller? Bueller?","Frankly, my dear, I don't give a damn.","Well, that escalated quickly.","I'm not even supposed to be here today!","We'll always have Paris."]],
+  [0.001, ["So you're telling me there's a chance.","Never tell me the odds.","I'm not dead yet!","Do or do not. There is no try.","Failure is not an option.","Never give up, never surrender!","Was it over when the Germans bombed Pearl Harbor?","Nothing is over until we decide it is!","Inconceivable!","Cut me, Mick.","Win one for the Gipper.","I have a bad feeling about this.","Do you believe in miracles?"]],
+  [0.05, ["Cinderella story. Outta nowhere.","Just keep swimming.","Houston, we have a problem.","We're gonna need a bigger boat.","Hold on to your butts.","May the odds be ever in your favor.","Get busy living, or get busy dying.","Snakes. Why did it have to be snakes?","Toto, I've a feeling we're not in Kansas anymore.","It's not the years, honey, it's the mileage.","Get to the chopper!","Again!"]],
+  [0.2, ["60% of the time, it works every time.","Just when I thought I was out, they pull me back in.","Alright, alright, alright.","Life finds a way.","Nobody puts Baby in a corner.","Welcome to the party, pal.","Carpe diem. Seize the day, boys.","The Dude abides.","Hakuna Matata.","Life moves pretty fast.","I'm Batman.","Ducks fly together!"]],
+  [0.4, ["Hope is a good thing, maybe the best of things.","Great moments are born from great opportunity.","I love it when a plan comes together.","I feel the need, the need for speed.","We're on a mission from God.","Just tap it in.","Roads? Where we're going, we don't need roads.","May the Force be with you.","Yippee-ki-yay.","Shake and bake!","Wax on, wax off.","Take your best shot."]],
+  [0.6, ["Show me the money!","I'm kind of a big deal.","You had me at hello.","That's a bingo!","Hasta la vista, baby.","If you ain't first, you're last.","Here's looking at you, kid.","Heroes get remembered, but legends never die.","There's no place like home.","Avengers, assemble.","To infinity and beyond!","Old-time hockey!"]],
+  [0.8, ["I'm the king of the world!","Yo, Adrian, I did it!","Go the distance.","Merry Christmas, ya filthy animal.","I'm gonna make him an offer he can't refuse.","That'll do, pig. That'll do.","Here's Johnny!","This is Sparta!","I am Iron Man.","Groovy.","Keep the change, ya filthy animal.","Puttin' on the foil!"]],
+  [0.95, ["I'm the captain now.","Freedom!","Bond. James Bond.","It's showtime!","Big mistake. Huge.","Winner winner, chicken dinner.","Wolverines!","Say hello to my little friend!","Party on, Wayne.","You is kind, you is smart, you is important.","Sweep the leg.","Quack, quack, quack!"]]
 ];
 function quoteFor(p){
-  var tier=0; QUOTES.forEach(function(q){ if(p>=q[0]) tier=q[0]; });
-  if(p<=0) tier=0; else if(tier===0) tier=0.001;
-  var pool=QUOTES.filter(function(q){ return q[0]===tier; });
-  var day=Math.floor(Date.now()/864e5);
-  return pool[day%pool.length][1];
+  var pool=QUOTES[0][1];
+  for(var i=0;i<QUOTES.length;i++){ if(p>=QUOTES[i][0]) pool=QUOTES[i][1]; }
+  if(p<=0) pool=QUOTES[0][1]; else if(p<QUOTES[1][0]) pool=QUOTES[1][1];
+  return dayQuote(pool);
 }
 function renderOdds(){
   var box=$('odds'); var o=S.odds;
