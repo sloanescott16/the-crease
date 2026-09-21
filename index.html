@@ -204,6 +204,16 @@ table.st .tm img{width:20px; height:20px; object-fit:contain; flex:none}
 table.st .tm i{font-style:normal; font-size:10px; color:var(--dim); font-weight:600}
 table.st .rec{font-family:var(--display); font-size:15px}
 table.st .gb.zero{color:var(--good); font-weight:700}
+/* v7: playoff odds column */
+table.st td.od{font-family:var(--display); font-size:15px; font-weight:600; min-width:50px}
+table.st td.od.hi{color:var(--good)} table.st td.od.mid{color:var(--warn)} table.st td.od.lo{color:var(--mute)} table.st td.od.out{color:var(--bad)} table.st td.od.in{color:#6ee0a8}
+table.st td.od .ob{display:block; height:3px; border-radius:2px; background:#232936; margin-top:3px; overflow:hidden}
+table.st td.od .ob i{display:block; height:100%; border-radius:2px; background:currentColor}
+table.st th,table.st td{white-space:nowrap}
+table.st th:first-child,table.st td:first-child{position:sticky; left:0; z-index:1; background:var(--card); box-shadow:inset -1px 0 0 var(--line)}
+table.st tr.fav td:first-child{background:#12211a; box-shadow:inset 3px 0 0 var(--blue), inset -1px 0 0 var(--line)}
+table.st tr.me td:first-child{background:#12211a}
+@media (max-width:640px){ table.st{min-width:0} table.st th,table.st td{padding:7px 5px} table.st td.od{min-width:42px; font-size:14px} }
 table.st .str.w{color:var(--good)} table.st .str.l{color:var(--bad)}
 .cutline{font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--warn); font-weight:700;
   padding:5px 10px; background:rgba(232,163,61,.08); border-bottom:1px solid var(--line)}
@@ -1012,9 +1022,11 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 .il div[data-plid],.decs span[data-plid]{cursor:pointer}
 .il div[data-plid]:hover b,.decs span[data-plid]:hover b{color:#7ee2a8}
 @media (max-width:640px){ .pmh .pmx{width:100%; justify-content:flex-end} }
-.pbars{display:flex; align-items:flex-end; gap:2px; height:70px; margin:6px 0 2px; border-bottom:1px solid var(--line)}
-.pbars i{flex:1; min-width:3px; background:#2a3140; border-radius:2px 2px 0 0; cursor:pointer; position:relative}
-.pbars i.p{background:var(--blue)} .pbars i.z{height:3px!important; background:#2a3140}
+/* v7: bars share the card width whatever the game count; class was "p", which caught the Path card's .p padding and blew every bar up to 36px */
+.pbars{display:flex; align-items:flex-end; gap:1px; height:70px; margin:6px 0 2px; border-bottom:1px solid var(--line); overflow:hidden; min-width:0}
+.pbars i{flex:1 1 0; min-width:0; background:#2a3140; border-radius:2px 2px 0 0; cursor:pointer; position:relative}
+.pbars i.hit{background:var(--blue)} .pbars i.z{height:3px!important; background:#2a3140}
+.tsheet{overflow-x:hidden}
 .pbars i:hover{outline:1px solid #fff}
 .pbk{font-size:10.5px; color:var(--dim); display:flex; justify-content:space-between}
 .sn-more{font:inherit; font-size:11px; font-weight:600; color:#7ee2a8; background:none; border:0; padding:6px 0 0; cursor:pointer}
@@ -1442,10 +1454,13 @@ function simOdds(){
   var N=Math.max(2000,Math.min(20000,Math.round(9e6/Math.max(1,G.length))));
   var seed=0; ids.forEach(function(id,i){ seed=(seed*31+pts0[i]*7+rw0[i])|0; }); seed^=G.length*2654435761;
   var rand=rng(seed);
-  var me=ix[FAV], myConf=conf[me], myDiv=div[me];
-  var west=[]; for(var i=0;i<n;i++) if(conf[i]===myConf) west.push(i);
-  var made=0, divWin=0, top3=0, wc=0, key=new Float64Array(n);
+  var me=ix[FAV];
+  /* v7: every team in both conferences is scored, not just the Stars */
+  var confs={}; for(var i=0;i<n;i++) (confs[conf[i]]||(confs[conf[i]]=[])).push(i);
+  var confList=Object.keys(confs).map(function(k){ return confs[k]; });
+  var made=new Float64Array(n), divWin=new Float64Array(n), top3=new Float64Array(n), wc=new Float64Array(n), key=new Float64Array(n);
   var pts=new Float64Array(n), rw=new Float64Array(n);
+  var bykey=function(x,y){ return key[y]-key[x]; };
   for(var t=0;t<N;t++){
     pts.set(pts0); rw.set(rw0);
     for(var g=0;g<G.length;g++){
@@ -1453,18 +1468,30 @@ function simOdds(){
       var w=hw?gm[0]:gm[1], l=hw?gm[1]:gm[0];
       pts[w]+=2; if(ot) pts[l]+=1; else rw[w]+=1;
     }
-    for(var k=0;k<west.length;k++){ var q=west[k]; key[q]=pts[q]*1000+rw[q]+rand()*0.9; }
-    var byDiv={}, rest=[];
-    for(k=0;k<west.length;k++){ q=west[k]; (byDiv[div[q]]||(byDiv[div[q]]=[])).push(q); }
-    var inn=false, rank=0;
-    for(var dn in byDiv){
-      var arr=byDiv[dn].sort(function(x,y){ return key[y]-key[x]; });
-      for(k=0;k<arr.length;k++){ if(k<3){ if(arr[k]===me){ inn=true; rank=k+1; } } else rest.push(arr[k]); }
+    for(i=0;i<n;i++) key[i]=pts[i]*1000+rw[i]+rand()*0.9;
+    for(var c=0;c<confList.length;c++){
+      var teams=confList[c], byDiv={}, rest=[], k, q;
+      for(k=0;k<teams.length;k++){ q=teams[k]; (byDiv[div[q]]||(byDiv[div[q]]=[])).push(q); }
+      for(var dn in byDiv){
+        var arr=byDiv[dn].sort(bykey);
+        for(k=0;k<arr.length;k++){ if(k<3){ made[arr[k]]++; top3[arr[k]]++; if(k===0) divWin[arr[k]]++; } else rest.push(arr[k]); }
+      }
+      rest.sort(bykey); if(rest[0]!=null){ made[rest[0]]++; wc[rest[0]]++; } if(rest[1]!=null){ made[rest[1]]++; wc[rest[1]]++; }
     }
-    if(inn){ made++; top3++; if(rank===1) divWin++; }
-    else { rest.sort(function(x,y){ return key[y]-key[x]; }); if(rest[0]===me||rest[1]===me){ made++; wc++; } }
   }
-  return {p:made/N, div:divWin/N, top3:top3/N, wc:wc/N, n:N, games:G.length};
+  var by={}; ids.forEach(function(id,i){ by[id]={p:made[i]/N, div:divWin[i]/N, top3:top3[i]/N, wc:wc[i]/N}; });
+  var mine=by[FAV]||{p:0,div:0,top3:0,wc:0};
+  return {p:mine.p, div:mine.div, top3:mine.top3, wc:mine.wc, n:N, games:G.length, by:by};
+}
+/* v7: odds cell for the standings tables */
+function oddsCell(id,st){
+  var r=st&&st.byId[id], cl=String((r&&r.clinch)||'').toLowerCase();
+  if(st!==S.cur||!S.odds||!S.odds.by) return '<td class="od lo">&mdash;</td>';
+  if(cl==='e') return '<td class="od out">out</td>';
+  if(cl&&cl!=='e') return '<td class="od in" title="Clinched">100%</td>';
+  var o=S.odds.by[id]; if(!o) return '<td class="od lo">&mdash;</td>';
+  var v=o.p, c=v>=0.995?'in':v>=0.75?'hi':v>=0.25?'mid':v<=0?'out':'lo';
+  return '<td class="od '+c+'" title="Playoffs '+pctTxt(v)+' &middot; top three '+pctTxt(o.top3)+' &middot; wild card '+pctTxt(o.wc)+'">'+pctTxt(v)+'<span class="ob"><i style="width:'+Math.round(v*100)+'%"></i></span></td>';
 }
 function pctTxt(p){ if(p<=0) return '0%'; if(p>=1) return '100%'; if(p<0.01) return '<1%'; if(p>0.99) return '>99%'; return Math.round(p*100)+'%'; }
 /* movie lines by playoff-odds tier, film titles never shown. One line a day from the tier's pool:
@@ -1518,7 +1545,7 @@ function runOdds(){
   var key=Object.keys(S.cur.byId).map(function(id){ var r=S.cur.byId[id]; return r.pts+'.'+r.gp; }).join(',')+'|'+remaining().length;
   if(key===S.oddsKey) return;
   S.oddsKey=key;
-  setTimeout(function(){ try{ S.odds=simOdds(); renderOdds(); }catch(e){ console.error(e); } },30);
+  setTimeout(function(){ try{ S.odds=simOdds(); renderOdds(); renderTables(); if(S.view==='stand') renderStandings(); if(S.tmv&&S.tmv.id&&typeof tmRender==='function') tmRender(); }catch(e){ console.error(e); } },30);
 }
 
 /* ---------- top bar ---------- */
@@ -1721,22 +1748,22 @@ function stTable(st,title,sub,ids,cutAfter,o){
     var sk=String(r.strk||''), sc=sk.charAt(0)==='W'?'w':sk.charAt(0)==='L'?'l':'';
     return '<tr class="'+(id===FAV?'fav':'')+(o.me===id?' me':'')+(i===cutAfter-1&&cutAfter<ids.length?' cut':'')+'" data-tid="'+id+'">'+
       '<td><div class="tm">'+imgT(id)+esc(nick(id))+(o.seed&&o.seed[id]?' <i>'+o.seed[id]+'</i>':'')+(/^[a-z*]+$/i.test(r.clinch)?' <i>'+esc(r.clinch)+'</i>':'')+'</div></td>'+
-      '<td>'+r.gp+'</td><td>'+r.w+'</td><td>'+r.l+'</td><td>'+r.otl+'</td><td class="rec">'+r.pts+'</td><td>'+pct3(r.pp)+'</td><td>'+r.rw+'</td>'+
+      '<td>'+r.gp+'</td><td>'+r.w+'</td><td>'+r.l+'</td><td>'+r.otl+'</td><td class="rec">'+r.pts+'</td>'+(o.noOdds?'':oddsCell(id,st))+'<td>'+pct3(r.pp)+'</td><td>'+r.rw+'</td>'+
       '<td class="x">'+r.gf+'</td><td class="x">'+r.ga+'</td><td>'+(r.gf-r.ga>0?'+':'')+(r.gf-r.ga)+'</td>'+
       (o.ref?'<td class="gb'+(gb==='-'?' zero':'')+'">'+gb+'</td>':'')+
       '<td class="x">'+esc(r.l10)+'</td><td class="str '+sc+'">'+esc(sk)+'</td></tr>';
   }).join('');
   return '<div class="tb"><div class="tbh"><h3>'+title+'</h3><span>'+sub+'</span></div><div class="scrollx"><table class="st'+(o.cmpct?' cmpct':'')+'"><thead><tr>'+
-    '<th>Team</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>PTS</th><th>P%</th><th>RW</th><th class="x">GF</th><th class="x">GA</th><th>DIFF</th>'+(o.ref?'<th>'+(o.refLab||'PB')+'</th>':'')+'<th class="x">L10</th><th>STRK</th>'+
+    '<th>Team</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>PTS</th>'+(o.noOdds?'':'<th title="Chance of making the playoffs (simulated)">Odds</th>')+'<th>P%</th><th>RW</th><th class="x">GF</th><th class="x">GA</th><th>DIFF</th>'+(o.ref?'<th>'+(o.refLab||'PB')+'</th>':'')+'<th class="x">L10</th><th>STRK</th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
 }
 function wcTable(st,conf,cmpct){
   var sd=seedsOf(st,conf.name);
-  return stTable(st,'Wild card',conf.name==='West'?'Western Conference':'Eastern Conference',sd.wc,2,{ref:sd.lastIn,refLab:'PB',seed:sd.seed,cmpct:cmpct});
+  return stTable(st,'Wild card',conf.name==='West'?'Western Conference':'Eastern Conference',sd.wc,2,{ref:sd.lastIn,refLab:'PB',seed:sd.seed,cmpct:cmpct,noOdds:st!==S.cur});
 }
 function divTable(st,conf,dv,me,cmpct){
   var sd=seedsOf(st,conf.name);
-  return stTable(st,esc(dv.name),(conf.name==='West'?'Western':'Eastern')+' Conference',dv.ids,3,{seed:sd.seed,me:me,cmpct:cmpct});
+  return stTable(st,esc(dv.name),(conf.name==='West'?'Western':'Eastern')+' Conference',dv.ids,3,{seed:sd.seed,me:me,cmpct:cmpct,noOdds:st!==S.cur});
 }
 function renderTables(){
   if(!S.cur){ return; }
@@ -1756,7 +1783,8 @@ function renderStandings(){
     return '<div class="head" style="margin-top:14px"><h2>'+(c.name==='West'?'Western':'Eastern')+' Conference</h2></div><div class="stlg"><div class="stcol">'+
       c.divs.map(function(dv){ return divTable(st,c,dv); }).join('')+'</div><div class="stcol">'+wcTable(st,c)+'</div></div>';
   }).join('');
-  $('standAll').innerHTML=(S.stSeason==='cur'&&preseason()?'<div class="pre-note">Nobody has played yet. Flip to last season for the final table.</div>':'')+html;
+  $('standAll').innerHTML=(S.stSeason==='cur'&&preseason()?'<div class="pre-note">Nobody has played yet. Odds are the preseason model, last season\'s pace regressed toward the middle, played out over the real schedule. Flip to last season for the final table.</div>':'')+html+
+    (S.stSeason==='cur'?'<p class="pre-note" style="margin-top:10px">Odds: every remaining game simulated thousands of times, home ice and a 23% overtime rate included, ties broken at random. Hover a number for the top-three and wild-card split.</p>':'');
 }
 
 /* ---------- run-in ---------- */
@@ -2195,7 +2223,7 @@ function loadBT(y){
   if(S.bt[y+'p']) return S.bt[y+'p'];
   S.bt[y+'p']=j(WEB+'/statistics/byteam?season='+y+'&seasontype=2').then(function(x){
     var t=parseBT(x);
-    if(!t||!t.n){ return j(WEB+'/statistics/byteam?season='+(y-1)+'&seasontype=2').then(function(z){ var p=parseBT(z); if(p) p.last=true; S.bt[y]=p; return p; }); }
+    if(!t||!t.n){ return j(WEB+'/statistics/byteam?season='+(y-1)+'&seasontype=2').then(function(z){ var p=parseBT(z); if(p) p.last=true; S.bt[y]=p||{n:0,by:{}}; return S.bt[y]; }); } /* v7: an empty feed is cached too, or renderSeason re-requests forever */
     S.bt[y]=t; return t;
   }).catch(function(){ S.bt[y]={n:0,by:{}}; return S.bt[y]; });
   return S.bt[y+'p'];
@@ -3050,7 +3078,7 @@ function plRender(){
   else {
     var key=isG?'saves':'points';
     var mx=Math.max(1,Math.max.apply(null,g.rows.map(function(r){ return +r.st[key]||0; })));
-    var bars='<div class="pbars">'+g.rows.map(function(r){ var v=+r.st[key]||0; return '<i data-gid="'+r.id+'" class="'+(v?'p':'z')+'" style="height:'+(v/mx*100)+'%" title="'+esc(dshort(r.date)+' '+r.at+' '+r.oab+': '+v+' '+(isG?'saves':'pts')+(r.res?' ('+r.res+' '+r.score+')':''))+'"></i>'; }).join('')+'</div>'+
+    var bars='<div class="pbars">'+g.rows.map(function(r){ var v=+r.st[key]||0; return '<i data-gid="'+r.id+'" class="'+(v?'hit':'z')+'" style="height:'+(v/mx*100)+'%" title="'+esc(dshort(r.date)+' '+r.at+' '+r.oab+': '+v+' '+(isG?'saves':'pts')+(r.res?' ('+r.res+' '+r.score+')':''))+'"></i>'; }).join('')+'</div>'+
       '<div class="pbk"><span>'+dshort(g.rows[0].date)+'</span><span>'+(isG?'saves':'points')+' per game, tap a bar</span><span>'+dshort(g.rows[g.rows.length-1].date)+'</span></div>';
     var cols=isG?['saves','goalsAgainst','savePct','timeOnIce']:['goals','assists','points','plusMinus','shotsTotal','powerPlayGoals','timeOnIcePerGame'];
     cols=cols.filter(function(c){ return g.names.indexOf(c)>=0; });
