@@ -999,6 +999,19 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 .pmh .sub{color:var(--mute); font-size:13px; margin-top:4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap}
 .pmh .sub img{width:18px; height:18px; object-fit:contain}
 .pmh .sub a{cursor:pointer; text-decoration:underline; text-underline-offset:3px}
+/* v6: player card everywhere */
+.pmh{flex-wrap:wrap}
+.pmh .sub .bio{display:block; width:100%; color:var(--dim); font-size:12px}
+.pmh .sub .inj{display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--warn); border:1px solid rgba(232,163,61,.5); border-radius:999px; padding:1px 8px}
+.pmh .pmx{margin-left:auto; display:flex; gap:6px; align-items:center}
+.pmh .pmx a.tmx{text-decoration:none}
+.plg{display:flex; flex-wrap:wrap; gap:6px 16px; font-size:13px; color:var(--mute)}
+.plg span i{font-style:normal; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); margin-right:5px}
+.pn{cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px; text-decoration-color:var(--dim)}
+.pn:hover{color:#7ee2a8; text-decoration-color:#7ee2a8}
+.il div[data-plid],.decs span[data-plid]{cursor:pointer}
+.il div[data-plid]:hover b,.decs span[data-plid]:hover b{color:#7ee2a8}
+@media (max-width:640px){ .pmh .pmx{width:100%; justify-content:flex-end} }
 .pbars{display:flex; align-items:flex-end; gap:2px; height:70px; margin:6px 0 2px; border-bottom:1px solid var(--line)}
 .pbars i{flex:1; min-width:3px; background:#2a3140; border-radius:2px 2px 0 0; cursor:pointer; position:relative}
 .pbars i.p{background:var(--blue)} .pbars i.z{height:3px!important; background:#2a3140}
@@ -2052,7 +2065,7 @@ function gcStars(){
   var body='';
   if(st.length) body+='<div class="stars3">'+st.map(function(x,i){ var a=x.athlete||{}; var hs=(a.headshot||{}).href||'';
     return '<div data-plid="'+esc(a.id||'')+'"><i>'+['&#9733;','&#9733;&#9733;','&#9733;&#9733;&#9733;'][i]+'</i><img src="'+esc(hs)+'" alt="" onerror="this.style.visibility=\'hidden\'"><b>'+esc(a.shortName||a.displayName||'')+'</b><span>'+esc(ab(String((x.team||{}).id)))+'</span></div>'; }).join('')+'</div>';
-  if(dec.length) body+='<div class="decs">'+dec.map(function(x){ var a=x.athlete||{}; return '<span><i style="color:'+(x.name==='winningGoalie'?'var(--good)':'var(--bad)')+'">'+(x.name==='winningGoalie'?'W':'L')+'</i><b>'+esc(a.displayName||'')+'</b></span>'; }).join('')+'</div>';
+  if(dec.length) body+='<div class="decs">'+dec.map(function(x){ var a=x.athlete||{}; return '<span'+(a.id?' data-plid="'+esc(a.id)+'" data-pname="'+esc(a.displayName||'')+'" title="Player card"':'')+'><i style="color:'+(x.name==='winningGoalie'?'var(--good)':'var(--bad)')+'">'+(x.name==='winningGoalie'?'W':'L')+'</i><b>'+esc(a.displayName||'')+'</b></span>'; }).join('')+'</div>';
   return card('Three stars',body,'o4');
 }
 function gcLine(){
@@ -2152,7 +2165,7 @@ function gcPBP(){
     var rows=byP[k].slice().reverse().map(function(p){
       var cls=p.scoringPlay?'goal':isPen(p)?'pen':'';
       var tid=String((p.team||{}).id||'');
-      return '<div class="pbpr '+cls+'"><span class="t">'+(isSO(p)?'':esc(p.clock.displayValue))+'</span>'+(tid?imgT(tid):'<span></span>')+'<span>'+(p.scoringPlay?'<b>GOAL</b> ':'')+esc(p.text)+'</span></div>';
+      return '<div class="pbpr '+cls+'"><span class="t">'+(isSO(p)?'':esc(p.clock.displayValue))+'</span>'+(tid?imgT(tid):'<span></span>')+'<span>'+(p.scoringPlay?'<b>GOAL</b> ':'')+linkNames(esc(p.text))+'</span></div>';
     }).join('');
     var g=byP[k].filter(function(p){ return p.scoringPlay; }).length;
     return '<details class="half"'+(i===0&&live||(!live&&i===0)?' open':'')+'><summary><b>'+(k<=3?ord(k)+' period':k===4&&gcType()!==3?'Overtime':k===5&&gcType()!==3?'Shootout':perName(k))+'</b><span>'+plural(byP[k].length,'event')+'</span><span class="hr">'+(g?plural(g,'goal'):'')+'</span></summary><div class="pbpbox">'+rows+'</div></details>';
@@ -2165,7 +2178,7 @@ function gcInj(){
     var list=(t.injuries||[]); if(!list.length) return '';
     var id=String((t.team||{}).id);
     return '<h4>'+imgT(id)+esc(nick(id))+'</h4>'+list.map(function(x){ var a=x.athlete||{}; var d=x.details||{};
-      return '<div><b>'+esc(a.shortName||a.displayName||'')+'</b><span>'+esc([((a.position||{}).abbreviation)||'',d.type||x.type&&x.type.description||''].filter(Boolean).join(' · '))+'</span><span>'+esc(x.status||'')+'</span></div>'; }).join('');
+      return '<div'+(a.id?' data-plid="'+esc(a.id)+'" data-pname="'+esc(a.displayName||a.shortName||'')+'" title="Player card"':'')+'><b>'+esc(a.shortName||a.displayName||'')+'</b><span>'+esc([((a.position||{}).abbreviation)||'',d.type||x.type&&x.type.description||''].filter(Boolean).join(' · '))+'</span><span>'+esc(x.status||'')+'</span></div>'; }).join('');
   }).join('');
   return html?card('Injuries','<div class="il">'+html+'</div>','o10'):'';
 }
@@ -2446,7 +2459,7 @@ function tmRender(){
 /* ---------- v2: the Season tab ---------- */
 var HS='https://a.espncdn.com/i/headshots/nhl/players/full/';
 S.sn={sea:'cur', ts:{}, tsT:{}, roster:{}, lead:{}, leadCat:'pts', rtab:'sk', rsort:{sk:['points',-1],g:['wins',-1]}, lg:{sort:'pts',dir:-1,f:'all'}, split:null, mon:null, on:null, onKey:'', logAll:false};
-S.pl={id:null, mode:'l10', gl:{}};
+S.pl={id:null, mode:'l10', gl:{}, bio:{}};   // v6: bio per player
 
 function snYear(){ return S.sn.sea==='prev'?(S.season-1):S.season; }
 function snStatPrev(){ return S.sn.sea==='prev'||!started(); }
@@ -2954,7 +2967,39 @@ function openPlayer(id){
   plRender();
   var y=snStatPrev()?S.season-1:S.season;
   loadOv(id).then(plRender);
+  if(!S.pl.bio[id]) j(WEB+'/athletes/'+id).then(function(x){ S.pl.bio[id]=(x&&x.athlete)||x||{}; },function(){ S.pl.bio[id]={}; }).then(plRender);   // v6
   loadGL(id,y).then(function(g){ if(g&&!g.rows.length&&y===S.season) return loadGL(id,y-1); }).then(plRender);
+}
+// v6: his line in the open game's box score, and names in play text that open the card
+function plInGame(id){
+  var sum=S.gc&&S.gc.sum; if(!sum||!sum.boxscore||!sum.header) return '';
+  var out='';
+  (sum.boxscore.players||[]).forEach(function(P){ (P.statistics||[]).forEach(function(st){ (st.athletes||[]).forEach(function(a){
+    if(String((a.athlete||{}).id)!==String(id)||!(a.stats&&a.stats.length)) return;
+    var lab=st.labels||st.names||[], keys=st.name==='goalies'||/goal/i.test(st.text||'')?['SA','GA','SV','SV%','TOI']:['G','A','+/-','S','HITS','BS','PIM','TOI'], ix={}; lab.forEach(function(n,i){ ix[n]=i; });
+    var line=keys.map(function(k){ var i=ix[k]; return i==null||a.stats[i]==null||a.stats[i]===''?'':'<span><i>'+esc(lab[i]||k)+'</i>'+esc(a.stats[i])+'</span>'; }).join('');
+    if(!line) line=a.stats.slice(0,6).map(function(v,i){ return '<span><i>'+esc(lab[i]||'')+'</i>'+esc(v)+'</span>'; }).join('');
+    out+=line; }); }); });
+  if(!out) return '';
+  var ids=gcIds(), A=gcSide('away'), H=gcSide('home'), st=gcState();
+  var sc=st==='pre'?ab(ids.a)+' at '+ab(ids.h):ab(ids.a)+' '+(A.score!=null?A.score:'')+' · '+ab(ids.h)+' '+(H.score!=null?H.score:'');
+  return '<div class="tmc"><h3>'+(st==='in'?'In this game':'In the game')+'<small>'+esc(sc)+'</small></h3><div class="plg">'+out+'</div></div>';
+}
+function plNameMap(){
+  var sum=S.gc&&S.gc.sum, bp=sum&&sum.boxscore&&sum.boxscore.players, key=(S.gc&&S.gc.id)+':'+(bp?bp.length:0)+':'+(bp&&bp[0]&&bp[0].statistics&&bp[0].statistics[0]&&bp[0].statistics[0].athletes?bp[0].statistics[0].athletes.length:0);
+  if(S.pl.nmap&&S.pl.nmap.key===key) return S.pl.nmap;
+  var m={}, amb={};
+  function add(k,id,nm){ if(!k) return; if(m[k]&&m[k].id!==id) amb[k]=1; else m[k]={id:id,nm:nm}; }
+  (bp||[]).forEach(function(P){ (P.statistics||[]).forEach(function(st){ (st.athletes||[]).forEach(function(a){ var A=a.athlete||{}; if(!A.id) return; var id=String(A.id), full=A.displayName||'', sh=A.shortName||'';
+    add(full,id,full); add(sh,id,full); var parts=full.split(' '); if(parts.length>=2){ add(parts[0][0]+'. '+parts.slice(1).join(' '),id,full); add(parts[0][0]+'.'+parts.slice(1).join(' '),id,full); } }); }); });
+  Object.keys(amb).forEach(function(k){ delete m[k]; });
+  var keys=Object.keys(m).filter(function(k){return k.length>3}).sort(function(a,b){return b.length-a.length});
+  S.pl.nmap={key:key, m:m, re:keys.length?new RegExp("(^|[^A-Za-z.'])("+keys.map(function(k){return k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}).join('|')+")(?![A-Za-z'])",'g'):null};
+  return S.pl.nmap;
+}
+function linkNames(html){
+  var nm=plNameMap(); if(!nm.re) return html;
+  return html.replace(nm.re,function(all,pre,k){ var hit=nm.m[k]; return hit?pre+'<span class="pn" data-plid="'+hit.id+'" data-pname="'+esc(hit.nm)+'" title="Player card">'+k+'</span>':all; });
 }
 function closePlayer(){ S.pl.id=null; $('pmod').hidden=true; }
 function loadGL(id,y){
@@ -2983,11 +3028,16 @@ function plRender(){
   var id=S.pl.id; if(!id) return;
   var y=snStatPrev()?S.season-1:S.season;
   var g=S.pl.gl[id+'|'+y]; if(g&&!g.rows.length&&S.pl.gl[id+'|'+(y-1)]&&S.pl.gl[id+'|'+(y-1)].rows.length) g=S.pl.gl[id+'|'+(y-1)];
-  var info=plInfo(id), ov=S.ov[id];
-  var name=info.name||(S.pl.nm&&S.pl.nm[id])||'Player';
-  var tid=info.tid||(g&&g.team&&g.team.id)||'';
-  var isG=info.pos==='G'||(g&&g.names.indexOf('saves')>=0);
-  var h='<div class="pmh">'+hsImg(id,'hs')+'<div style="min-width:0"><h2>'+esc(name)+'</h2><div class="sub">'+esc(info.pos||'')+(tid?' '+imgT(tid)+'<a data-tid="'+tid+'">'+esc(nick(tid))+'</a>':'')+'</div></div><button class="tmx" type="button" data-plclose style="margin-left:auto">Close</button></div>';
+  var info=plInfo(id), ov=S.ov[id], bio=S.pl.bio[id]||{};
+  var name=bio.displayName||bio.fullName||info.name||(S.pl.nm&&S.pl.nm[id])||'Player';
+  var tid=info.tid||(bio.team&&bio.team.id?String(bio.team.id):'')||(g&&g.team&&g.team.id)||'';
+  var pos=(bio.position&&bio.position.abbreviation)||info.pos||'';
+  var isG=pos==='G'||(g&&g.names.indexOf('saves')>=0);
+  var bits=[pos, bio.jersey?'#'+bio.jersey:'', bio.age?bio.age+' yrs':'', [bio.displayHeight,bio.displayWeight].filter(Boolean).join(' '), bio.hand&&bio.hand.abbreviation?'shoots '+bio.hand.abbreviation:'', bio.experience&&bio.experience.years!=null?(bio.experience.years?bio.experience.years+' yr'+(bio.experience.years===1?'':'s'):'Rookie'):'', (bio.birthPlace&&[bio.birthPlace.city,bio.birthPlace.country].filter(Boolean).join(', '))||''].filter(Boolean);
+  var inj=(bio.injuries||[])[0], injTxt=inj?((inj.status||(inj.type&&inj.type.description)||'')+(inj.details&&inj.details.type?' · '+inj.details.type:'')):(bio.status&&bio.status.name&&!/active/i.test(bio.status.name)?bio.status.name:'');
+  var h='<div class="pmh">'+hsImg(id,'hs')+'<div style="min-width:0"><h2>'+esc(name)+'</h2><div class="sub">'+(tid?imgT(tid)+'<a data-tid="'+tid+'">'+esc(nick(tid))+'</a>':esc(pos))+(bits.length?'<span class="bio">'+esc(bits.join(' · '))+'</span>':'')+(injTxt?'<span class="inj">'+esc(injTxt)+'</span>':'')+'</div></div>'+
+    '<span class="pmx"><a class="tmx" href="https://x.com/search?src=typed_query&q='+encodeURIComponent(name)+'" target="_blank" rel="noopener noreferrer" title="Latest posts about '+esc(name)+' on X">Search X</a><button class="tmx" type="button" data-plclose>Close</button></span></div>';
+  h+=plInGame(id);
   // overview splits
   if(ov&&ov.splits&&ov.labels){
     var labs=ov.labels;
@@ -3030,7 +3080,7 @@ function snClick(ev){
   if((b=t.closest('#pmod [data-tid]'))){ var tid=b.getAttribute('data-tid'); closePlayer(); openTeam(tid); return true; }
   if((b=t.closest('#pmod [data-gid]'))){ var gid=b.getAttribute('data-gid'); closePlayer(); openGame(gid); return true; }
   if((b=t.closest('.ldr img.l[data-tid]'))){ openTeam(b.getAttribute('data-tid')); return true; }
-  if((b=t.closest('[data-plid]'))){ var nm=b.querySelector('b'); S.pl.nm=S.pl.nm||{}; if(nm&&!S.pl.nm[b.getAttribute('data-plid')]) S.pl.nm[b.getAttribute('data-plid')]=nm.textContent; if(S.tmv.id) closeTeam(); openPlayer(b.getAttribute('data-plid')); return true; }
+  if((b=t.closest('[data-plid]'))){ var nm=b.getAttribute('data-pname')||(b.querySelector('b')||{}).textContent; S.pl.nm=S.pl.nm||{}; if(nm&&!S.pl.nm[b.getAttribute('data-plid')]) S.pl.nm[b.getAttribute('data-plid')]=nm; if(S.tmv.id) closeTeam(); openPlayer(b.getAttribute('data-plid')); return true; }
   if((b=t.closest('[data-sea]'))){ S.sn.sea=b.getAttribute('data-sea'); S.sn.mon=null; S.sn.split=null; S.sn.onKey=''; renderSeason(); return true; }
   if((b=t.closest('[data-snto]'))){ snGo(b.getAttribute('data-snto')); return true; }
   if((b=t.closest('[data-mon]'))){ S.sn.mon=+b.getAttribute('data-mon'); snCal(); return true; }
