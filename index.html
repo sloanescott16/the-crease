@@ -1029,6 +1029,44 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 .tsheet{overflow-x:hidden}
 .pbars i:hover{outline:1px solid #fff}
 .pbk{font-size:10.5px; color:var(--dim); display:flex; justify-content:space-between}
+/* v8: the player game log is a chart with a stat picker plus compact rows, not a wide table */
+#pmod .pbars{position:relative; height:92px}
+#pmod .pbars i.l{opacity:.6}
+#pmod .pbars s{position:absolute; left:0; right:0; border-top:1px dashed rgba(255,255,255,.35); text-decoration:none; pointer-events:none; z-index:1}
+#pmod .pbars s em{position:absolute; right:0; top:-13px; font-style:normal; font-size:9.5px; color:var(--dim); background:var(--card2); padding:0 3px}
+#pmod .tseg.pst{margin-left:auto; flex-wrap:wrap}
+#pmod .tseg.pst button{padding:3px 8px}
+#pmod .pgl-top{display:flex; align-items:center; gap:8px; margin:10px 0 4px; font-size:11px; color:var(--dim)}
+#pmod .pgl-top .tseg{margin-left:auto}
+#pmod .pgl{display:grid; gap:2px; font-variant-numeric:tabular-nums; font-size:12.5px}
+#pmod .pgl-h,#pmod .pgl-r{display:grid; grid-template-columns:var(--cols); align-items:center; gap:4px 6px; padding:5px 6px; border-radius:8px}
+#pmod .pgl-h{font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); font-weight:700; padding-bottom:2px; border-bottom:1px solid var(--line); border-radius:0}
+#pmod .pgl-h span,#pmod .pgl-r span{text-align:right; min-width:0}
+#pmod .pgl-h span:first-child,#pmod .pgl-h .sh,#pmod .pgl-r .gm,#pmod .pgl-r .sh{text-align:left}
+#pmod .pgl-r{cursor:pointer; background:rgba(255,255,255,.02)}
+#pmod .pgl-r:hover{background:rgba(255,255,255,.06)}
+#pmod .pgl-r.avg{cursor:default; background:rgba(47,111,224,.10); box-shadow:inset 3px 0 0 var(--blue)}
+#pmod .pgl-r .gm{display:flex; flex-direction:column; min-width:0}
+#pmod .pgl-r .gm b{font-weight:600; display:flex; align-items:center; gap:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#pmod .pgl-r .gm b em{font-style:normal; color:var(--dim); font-size:10.5px}
+#pmod .pgl-r .gm b img{width:17px; height:17px; object-fit:contain; flex:none}
+#pmod .pgl-r .gm small{font-size:10.5px; color:var(--dim)}
+#pmod .pgl-r .gm small.W{color:var(--good)} #pmod .pgl-r .gm small.L{color:var(--bad)} #pmod .pgl-r .gm small.OTL{color:var(--warn)}
+#pmod .pgl-r .pts{font-family:var(--display); font-size:19px; font-weight:600; color:var(--ink)}
+#pmod .pgl-r.hot .pts{color:var(--blue)}
+#pmod .pgl-r .sh{font-size:11px; color:var(--mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#pmod .pgl-r .sh i{font-style:normal; color:var(--dim); font-size:9.5px; margin-right:3px}
+#pmod .pgl-r .sh u{display:inline-block; width:9px; text-decoration:none}
+#pmod .pgl-r>span>i{font-style:normal; color:var(--dim); font-size:9.5px; margin-right:3px}
+#pmod .pgl-r>span:not(.sh)>i{display:none}
+@media (max-width:640px){
+  #pmod .pgl-h{display:none}
+  #pmod .pgl-r{grid-template-columns:none!important; display:flex; flex-wrap:wrap; gap:3px 14px; align-items:baseline}
+  #pmod .pgl-r .gm{flex:1 1 100%}
+  #pmod .pgl-r span{text-align:left}
+  #pmod .pgl-r>span:not(.sh)>i{display:inline}
+  #pmod .pgl-r .sh{flex:1 1 100%; white-space:normal}
+}
 .sn-more{font:inherit; font-size:11px; font-weight:600; color:#7ee2a8; background:none; border:0; padding:6px 0 0; cursor:pointer}
 .sn-more:hover{text-decoration:underline}
 .pulse button,.nx,.lr{-webkit-tap-highlight-color:transparent}
@@ -2487,7 +2525,7 @@ function tmRender(){
 /* ---------- v2: the Season tab ---------- */
 var HS='https://a.espncdn.com/i/headshots/nhl/players/full/';
 S.sn={sea:'cur', ts:{}, tsT:{}, roster:{}, lead:{}, leadCat:'pts', rtab:'sk', rsort:{sk:['points',-1],g:['wins',-1]}, lg:{sort:'pts',dir:-1,f:'all'}, split:null, mon:null, on:null, onKey:'', logAll:false};
-S.pl={id:null, mode:'l10', gl:{}, bio:{}};   // v6: bio per player
+S.pl={id:null, mode:'l10', stat:null, gl:{}, bio:{}};   // v6: bio per player
 
 function snYear(){ return S.sn.sea==='prev'?(S.season-1):S.season; }
 function snStatPrev(){ return S.sn.sea==='prev'||!started(); }
@@ -2991,7 +3029,7 @@ function snLog(){
 /* ---------- player pop-up ---------- */
 function openPlayer(id){
   if(!id) return;
-  S.pl.id=id; S.pl.mode='l10'; $('pmod').hidden=false;
+  S.pl.id=id; S.pl.mode='l10'; S.pl.stat=null; $('pmod').hidden=false;
   plRender();
   var y=snStatPrev()?S.season-1:S.season;
   loadOv(id).then(plRender);
@@ -3052,6 +3090,58 @@ function plInfo(id){
   Object.keys(S.sn.lead).forEach(function(k){ var r=S.sn.lead[k]; if(r&&r.list) r.list.forEach(function(p){ if(p.id===id&&!hit) hit={name:p.name,pos:p.pos,tid:p.tid}; }); });
   return hit||{};
 }
+/* ---------- v8: the game log reads as a chart plus compact rows ---------- */
+function glTime(v){ return /^\d+:\d{2}$/.test(String(v==null?'':v)); }
+function glNum(v){ var s=String(v==null?'':v); if(glTime(s)){ var q=s.split(':'); return +q[0]+(+q[1])/60; }
+  var n=parseFloat(s.replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; }
+function glFmt(v){ return v===Math.round(v)?String(v):(+v).toFixed(1); }
+function glPair(v){ return /^\s*[\d.]+\s*[\/-]\s*[\d.]+\s*$/.test(String(v==null?'':v)); }
+function glAvg(vals){
+  var v=vals.filter(function(x){ return x!=null&&x!==''&&x!=='--'&&x!=='-'; });
+  if(!v.length) return '–';
+  if(glTime(v[0])){ var sec=v.reduce(function(a,x){ var q=String(x).split(':'); return a+(+q[0])*60+(+q[1]); },0)/v.length;
+    return Math.floor(sec/60)+':'+('0'+Math.round(sec%60)).slice(-2); }
+  if(glPair(v[0])){
+    var sep=String(v[0]).indexOf('/')>=0?'/':'-';
+    var parts=v.map(function(x){ return String(x).split(sep).map(function(y){ return parseFloat(y)||0; }); });
+    return [0,1].map(function(i){ return (parts.reduce(function(a,p){ return a+(p[i]||0); },0)/parts.length).toFixed(1); }).join(sep);
+  }
+  return (v.reduce(function(a,x){ return a+glNum(x); },0)/v.length).toFixed(1);
+}
+/* skaters and goalies get their own headline stat, columns, extras line and picker */
+var GL_PROF={
+  skate:{ head:'points', hot:3,
+    cols:['goals','assists','plusMinus','shotsTotal','timeOnIce'],
+    chart:['points','goals','assists','shotsTotal','plusMinus','timeOnIce'],
+    more:['powerPlayGoals','penaltyMinutes','hits','blockedShots','shortHandedGoals'] },
+  goal:{ head:'saves', hot:35,
+    cols:['shotsAgainst','goalsAgainst','savePct','timeOnIce'],
+    chart:['saves','savePct','goalsAgainst','shotsAgainst'],
+    more:['shutouts','evenStrengthSaves','powerPlaySaves','penaltyMinutes'] }
+};
+function glPlan(g,isG){
+  var names=g.names||[], labels=g.labels||[], used={}, seen={}, cseen={};
+  function has(n){ return names.indexOf(n)>=0; }
+  function lab(n){ var i=names.indexOf(n); return labels[i]||n; }
+  function qual(n){ return /^powerPlay/.test(n)?'PP ':/^shortHanded/.test(n)?'SH ':/^evenStrength/.test(n)?'EV ':''; }
+  function take(n){ if(!has(n)||used[n]) return null; used[n]=1; var l=lab(n); if(seen[l]) l=qual(n)+l; seen[l]=1; return [n,l]; }
+  var P=GL_PROF[isG?'goal':'skate'];
+  if(!has(P.head)) P=has(GL_PROF.goal.head)?GL_PROF.goal:GL_PROF.skate;
+  var head=take(P.head)||(names.length?take(names[0]):['','']);
+  var cols=[], more=[], i, c;
+  P.cols.forEach(function(n){ if(cols.length<5){ c=take(n); if(c) cols.push(c); } });
+  for(i=0;i<names.length&&cols.length<5;i++){ c=take(names[i]); if(c) cols.push(c); }
+  P.more.forEach(function(n){ if(more.length<3){ c=take(n); if(c) more.push(c); } });
+  for(i=0;i<names.length&&more.length<3;i++){ c=take(names[i]); if(c) more.push(c); }
+  function combo(n){ for(var k=0;k<g.rows.length;k++){ var v=g.rows[k].st[n]; if(v!=null&&v!=='') return glPair(v); } return false; }
+  var chart=[];
+  function add(x){ if(!x||!x[0]||combo(x[0])) return; for(var k=0;k<chart.length;k++) if(chart[k][0]===x[0]) return;
+    var l=x[1]; if(cseen[l]) l=qual(x[0])+l; cseen[l]=1; chart.push([x[0],l]); }
+  P.chart.forEach(function(n){ if(has(n)) add([n,lab(n)]); });
+  add(head); cols.forEach(add);
+  if(!chart.length) chart.push(head);
+  return {head:head, cols:cols, more:more, chart:chart.slice(0,6), hot:P.hot};
+}
 function plRender(){
   var id=S.pl.id; if(!id) return;
   var y=snStatPrev()?S.season-1:S.season;
@@ -3076,17 +3166,37 @@ function plRender(){
   if(!g) h+='<div class="tmc"><h3>Game log</h3><div class="empty">Loading the game log</div></div>';
   else if(!g.rows.length) h+='<div class="tmc"><h3>Game log</h3><div class="empty">No regular-season games logged yet.</div></div>';
   else {
-    var key=isG?'saves':'points';
-    var mx=Math.max(1,Math.max.apply(null,g.rows.map(function(r){ return +r.st[key]||0; })));
-    var bars='<div class="pbars">'+g.rows.map(function(r){ var v=+r.st[key]||0; return '<i data-gid="'+r.id+'" class="'+(v?'hit':'z')+'" style="height:'+(v/mx*100)+'%" title="'+esc(dshort(r.date)+' '+r.at+' '+r.oab+': '+v+' '+(isG?'saves':'pts')+(r.res?' ('+r.res+' '+r.score+')':''))+'"></i>'; }).join('')+'</div>'+
-      '<div class="pbk"><span>'+dshort(g.rows[0].date)+'</span><span>'+(isG?'saves':'points')+' per game, tap a bar</span><span>'+dshort(g.rows[g.rows.length-1].date)+'</span></div>';
-    var cols=isG?['saves','goalsAgainst','savePct','timeOnIce']:['goals','assists','points','plusMinus','shotsTotal','powerPlayGoals','timeOnIcePerGame'];
-    cols=cols.filter(function(c){ return g.names.indexOf(c)>=0; });
-    var labOf=function(c){ var i=g.names.indexOf(c); return g.labels[i]||c; };
+    // v8: a chart with a stat picker plus compact rows, not a wide table
+    var plan=glPlan(g,isG);
+    var sk=S.pl.stat, ok=false;
+    plan.chart.forEach(function(c){ if(c[0]===sk) ok=true; });
+    if(!ok) sk=plan.chart[0][0];
+    var slab=plan.chart.filter(function(c){ return c[0]===sk; })[0][1];
+    var vals=g.rows.map(function(r){ return glNum(r.st[sk]); });
+    var mx=Math.max(1,Math.max.apply(null,vals)), avg=vals.reduce(function(a,b){ return a+b; },0)/(vals.length||1);
+    var seg1='<span class="tseg pst">'+plan.chart.map(function(c){ return '<button data-plst="'+esc(c[0])+'" class="'+(c[0]===sk?'on':'')+'">'+esc(c[1])+'</button>'; }).join('')+'</span>';
+    var bars='<div class="pbars"><s style="bottom:'+(avg/mx*100).toFixed(1)+'%"><em>avg '+glFmt(+avg.toFixed(1))+'</em></s>'+g.rows.map(function(r,i){ var v=vals[i];
+      return '<i data-gid="'+r.id+'" class="'+(v?'hit':'z')+(r.res&&r.res!=='W'?' l':'')+'" style="height:'+(v/mx*100).toFixed(1)+'%" title="'+esc(dshort(r.date)+' '+r.at+' '+r.oab+': '+glFmt(v)+' '+slab+(r.res?' ('+r.res+' '+r.score+')':''))+'"></i>'; }).join('')+'</div>'+
+      '<div class="pbk"><span>'+dshort(g.rows[0].date)+'</span><span>'+esc(slab)+' per game, tap a bar · high '+glFmt(mx)+'</span><span>'+dshort(g.rows[g.rows.length-1].date)+'</span></div>';
     var list=S.pl.mode==='l10'?g.rows.slice(-10).reverse():g.rows.slice().reverse();
-    var seg='<span class="tseg"><button data-plm="l10" class="'+(S.pl.mode==='l10'?'on':'')+'">Last 10</button><button data-plm="all" class="'+(S.pl.mode==='all'?'on':'')+'">All '+g.rows.length+'</button></span>';
-    h+='<div class="tmc"><h3>Game log '+seaLabel(g.y)+seg+'</h3>'+bars+'<div class="scroll" style="margin-top:8px"><table class="rs"><tr><th>Date</th><th style="text-align:left">Opp</th><th>Result</th>'+cols.map(function(c){ return '<th style="cursor:default">'+esc(labOf(c))+'</th>'; }).join('')+'</tr>'+
-      list.map(function(r){ var rc=r.res==='W'?'W':r.res==='L'?'L':r.res?'OTL':''; return '<tr data-gid="'+r.id+'"><td>'+dshort(r.date)+'</td><td style="text-align:left"><div class="pl"><i style="width:14px">'+esc(r.at)+'</i>'+(r.opp?imgT(r.opp,'lg'):'')+'<b>'+esc(r.oab)+'</b></div></td><td class="'+rc+'">'+esc(r.res+' '+r.score)+'</td>'+cols.map(function(c){ return '<td>'+esc(r.st[c]==null?'':r.st[c])+'</td>'; }).join('')+'</tr>'; }).join('')+'</table></div></div>';
+    var seg2='<span class="tseg"><button data-plm="l10" class="'+(S.pl.mode==='l10'?'on':'')+'">Last 10</button><button data-plm="all" class="'+(S.pl.mode==='all'?'on':'')+'">All '+g.rows.length+'</button></span>';
+    var gcols='minmax(126px,1.5fr) 58px '+plan.cols.map(function(){ return '46px'; }).join(' ')+(plan.more.length?' minmax(92px,1fr)':'');
+    var val=function(r,n){ var v=r.st[n]; return v==null||v===''?'–':v; };
+    var mean=function(n){ return glAvg(list.map(function(r){ return r.st[n]; })); };
+    var detail=function(r){ return plan.more.map(function(c){ var v=r.st[c[0]];
+      return v==null||v===''||v==='0'||v==='--'||v==='0:00'?'':'<i>'+esc(c[1])+'</i>'+esc(v); }).filter(Boolean).join('<u></u>'); };
+    var headRow='<div class="pgl-h"><span>Game</span><span>'+esc(plan.head[1])+'</span>'+plan.cols.map(function(c){ return '<span>'+esc(c[1])+'</span>'; }).join('')+(plan.more.length?'<span class="sh">More</span>':'')+'</div>';
+    var avgRow='<div class="pgl-r avg"><span class="gm"><b>Average</b><small>these '+list.length+'</small></span><span class="pts">'+esc(mean(plan.head[0]))+'</span>'+
+      plan.cols.map(function(c){ return '<span><i>'+esc(c[1])+'</i>'+esc(mean(c[0]))+'</span>'; }).join('')+(plan.more.length?'<span class="sh"></span>':'')+'</div>';
+    var rows=list.map(function(r){ var rc=r.res==='W'?'W':r.res==='L'?'L':r.res?'OTL':'';
+      return '<div class="pgl-r'+(glNum(r.st[plan.head[0]])>=plan.hot?' hot':'')+'" data-gid="'+r.id+'" title="Open the game">'+
+        '<span class="gm"><b>'+esc(dshort(r.date))+' <em>'+esc(r.at)+'</em>'+(r.opp?imgT(r.opp,'lg'):'')+esc(r.oab)+'</b><small class="'+rc+'">'+esc((r.res||'')+' '+(r.score||''))+'</small></span>'+
+        '<span class="pts"><i>'+esc(plan.head[1])+'</i>'+esc(val(r,plan.head[0]))+'</span>'+
+        plan.cols.map(function(c){ return '<span><i>'+esc(c[1])+'</i>'+esc(val(r,c[0]))+'</span>'; }).join('')+
+        (plan.more.length?'<span class="sh">'+detail(r)+'</span>':'')+'</div>'; }).join('');
+    h+='<div class="tmc"><h3>Game log '+seaLabel(g.y)+seg1+'</h3>'+bars+
+      '<div class="pgl-top"><small>'+(S.pl.mode==='l10'?'newest first, last 10':'newest first, every game')+' · tap a game to open it</small>'+seg2+'</div>'+
+      '<div class="pgl" style="--cols:'+gcols+'">'+headRow+avgRow+rows+'</div></div>';
   }
   $('pmBody').innerHTML=h;
 }
@@ -3105,6 +3215,7 @@ function snClick(ev){
   var t=ev.target, b;
   if(t.closest('[data-plclose]')||t.id==='pmod'){ closePlayer(); return true; }
   if((b=t.closest('[data-plm]'))){ S.pl.mode=b.getAttribute('data-plm'); plRender(); return true; }
+  if((b=t.closest('[data-plst]'))){ S.pl.stat=b.getAttribute('data-plst'); plRender(); return true; }
   if((b=t.closest('#pmod [data-tid]'))){ var tid=b.getAttribute('data-tid'); closePlayer(); openTeam(tid); return true; }
   if((b=t.closest('#pmod [data-gid]'))){ var gid=b.getAttribute('data-gid'); closePlayer(); openGame(gid); return true; }
   if((b=t.closest('.ldr img.l[data-tid]'))){ openTeam(b.getAttribute('data-tid')); return true; }
