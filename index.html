@@ -1240,7 +1240,7 @@ var S={
   sort:'all', flt:'all', view:'home', stSeason:'cur',
   odds:null, oddsKey:'',
   slider:null,
-  gc:{id:null, sum:null, t:0, busy:false, team:'all', per:'all', kinds:{G:1,S:1,M:1,B:1}, sel:null, bx:null, pbp:'all', from:'#home', pre:{}},
+  gc:{id:null, sum:null, t:0, busy:false, team:'all', per:'all', kinds:{G:1,S:1,M:1,B:1}, sel:null, bx:null, pbp:'all', from:'', pre:{}},
   tmv:{id:null, mode:'l10'},
   bt:{}, ov:{}, ath:{},
   err:''
@@ -1941,7 +1941,7 @@ function openGame(id){
   if(S.gc.id!==id){ S.gc.id=id; S.gc.sum=null; S.gc.sel=null; S.gc.bx=null; S.gc.per='all'; S.gc.team='all'; S.gc.pbp='all'; }
   location.hash='#game-'+id;
 }
-function gcBack(){ location.hash=S.gc.from||('#'+defaultView()); }
+function gcBack(){ location.hash=S.gc.from||'#live'; }   // v9: a game opened from outside backs out to the scoreboard
 function gcLoad(force){
   var id=S.gc.id; if(!id||S.gc.busy) return;
   if(!force&&S.gc.sum&&Date.now()-S.gc.t<4500) return;
@@ -3243,8 +3243,8 @@ function setView(v){
   if(gm){ S.view='game'; if(S.gc.id!==gm[1]){ S.gc.id=gm[1]; S.gc.sum=null; S.gc.sel=null; S.gc.bx=null; } }
   else S.view=['home','sched','live','stand','season'].indexOf(v)>=0?v:defaultView();
   document.body.className='v-'+S.view;
-  var lit=S.view==='game'?String(S.gc.from||('#'+defaultView())).replace('#',''):S.view;
-  if(lit.indexOf('game-')===0||!lit) lit=defaultView();
+  var lit=S.view==='game'?String(S.gc.from||'#live').replace('#',''):S.view;
+  if(lit.indexOf('game-')===0||!lit) lit='live';
   [].forEach.call(document.querySelectorAll('#nav a'),function(a){ a.className=a.getAttribute('data-v')===lit?'on':''; });
   if(S.view==='game'){ gcRender(); gcLoad(true); window.scrollTo(0,0); }
   if(S.view==='sched'){ renderSched(); loadDay(S.day.off).then(renderSched,function(){}); }
@@ -3343,6 +3343,20 @@ function boot(){
   }).catch(fail).then(fastLoop);
 }
 boot();
+
+/* Search X and any other new-tab link: iOS quietly drops window.open from a touch, so on a
+   touch device the click falls back to navigating in place rather than doing nothing at all. */
+(function () {
+  if (!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches)) return;
+  document.addEventListener("click", function (e) {
+    var t = e.target, a = t && t.closest ? t.closest('a[target="_blank"]') : null;
+    if (!a || !/^https?:/.test(a.href)) return;
+    e.preventDefault();
+    var w = null;
+    try { w = window.open(a.href, "_blank"); } catch (err) { w = null; }
+    if (!w) window.location.href = a.href;
+  }, true);
+})();
 </script>
 </body>
 </html>
