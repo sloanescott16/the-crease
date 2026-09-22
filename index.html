@@ -1155,6 +1155,12 @@ a.hmt:hover{border-color:#39404f}
 .hmwhen{font-size:12px; color:var(--mute)}
 .hmh .hmgo{margin-left:auto}
 .hmflow:not(:empty){margin-bottom:12px}
+#secHome .games .g{cursor:pointer}
+#secHome .games .g.picked{border-color:var(--blue); box-shadow:0 0 0 1px var(--blue) inset}
+#secHome .tsch tr{cursor:pointer}
+#secHome .tsch tr:hover td{background:rgba(255,255,255,.035)}
+.hmh .hmback{margin-left:auto}
+.hmh .hmback + .hmgo{margin-left:0}
 .hmstand .tb{margin:0}
 @media (max-width:760px){
   .hmtop{grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px}
@@ -1314,7 +1320,7 @@ a.hmt:hover{border-color:#39404f}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v13';
+var VERSION='v14';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -1332,7 +1338,7 @@ var S={
   sort:'all', flt:'all', view:'home', stSeason:'cur',
   odds:null, oddsKey:'',
   slider:null,
-  hm:{id:null, sum:null, t:0, busy:false, pre:false},
+  hm:{id:null, sum:null, t:0, busy:false, pre:false, pin:null},
   gc:{id:null, sum:null, t:0, busy:false, team:'all', per:'all', kinds:{G:1,S:1,M:1,B:1}, sel:null, bx:null, pbp:'all', from:'', pre:{}},
   tmv:{id:null, mode:'l10'},
   bt:{}, ov:{}, ath:{},
@@ -2576,6 +2582,7 @@ function preInfo(){
    with the state of that game, and everything on the page is a way into somewhere else. The game
    center builders are reused as-is by lending them S.gc for the length of one call. */
 function hmPick(){
+  if(S.hm.pin) return S.hm.pin;   // v14: a game he picked on Home stays featured until he clears it
   var mine=S.today.filter(function(g){ return g.h&&g.a&&(g.h.id===FAV||g.a.id===FAV); });
   var p=mine.filter(function(g){ return g.st==='in'; })[0]||mine.filter(function(g){ return g.st==='pre'; })[0]||mine.filter(function(g){ return g.st==='post'; })[0];
   if(p) return String(p.id);
@@ -2610,6 +2617,21 @@ function hmLoad(force){
     if(S.view==='home') renderHome();
   });
 }
+function hmFeature(id){
+  id=String(id||''); if(!id||id===String(S.hm.id)) return;
+  S.hm.pin=id; S.hm.id=id; S.hm.sum=null; S.hm.t=0; S.hm.pre=false;
+  renderHome(); window.scrollTo({top:0, behavior:'smooth'});
+  hmLoad(true);
+}
+function hmUnfeature(){
+  S.hm.pin=null; S.hm.id=null; S.hm.sum=null; S.hm.t=0; S.hm.pre=false;
+  renderHome(); window.scrollTo({top:0, behavior:'smooth'});
+  hmLoad(true);
+}
+function hmIsFav(){
+  var ids=S.hm.sum?hmWith(function(){ var k=gcIds(); return k.a+','+k.h; }):'';
+  return ids.split(',').indexOf(FAV)>=0;
+}
 function hmTile(k,v,sub,cls){ return '<div class="hmt'+(cls?' '+cls:'')+'"><span class="k">'+k+'</span><b>'+v+'</b><span class="s">'+esc(sub)+'</span></div>'; }
 function hmStrip(){
   var d=dal(), out=[];
@@ -2641,18 +2663,19 @@ function hmHero(){
   var st=hmState();
   var lab=st==='in'?'Live now':st==='post'?'Final':'Next up';
   var when=st==='pre'?'<span class="hmwhen">'+hmWhen()+'</span>':'';
-  var cta='<button class="btn hmgo" type="button" data-gid="'+esc(S.hm.id)+'">'+(st==='pre'?'Full preview':st==='in'?'Game Center':'Game breakdown')+' &rsaquo;</button>';
+  var cta='<button class="btn hmgo" type="button" data-gcopen="'+esc(S.hm.id)+'">'+(st==='pre'?'Full preview':st==='in'?'Game Center':'Game breakdown')+' &rsaquo;</button>';
+  var back=(S.hm.pin&&!hmIsFav())?'<button class="btn hmback" type="button" data-hmclear>&lsaquo; Back to the Stars</button>':'';
   return '<div class="hmhero'+(st==='in'?' live':'')+'">'+
-    '<div class="hmh"><span class="hml'+(st==='in'?' on':st==='post'?' fin':'')+'">'+lab+'</span>'+when+cta+'</div>'+
+    '<div class="hmh"><span class="hml'+(st==='in'?' on':st==='post'?' fin':'')+'">'+lab+'</span>'+when+back+cta+'</div>'+
     hmWith(gcHeader)+(st==='in'?hmWith(function(){ return lastEvent(); }):'')+'</div>';
 }
 function hmTonight(){
-  var gs=S.today.filter(function(g){ return g.h&&g.a&&String(g.id)!==String(S.hm.id); });
-  if(!gs.length) return card('Around the league','<div class="empty">Nothing else on tonight.</div>','o6');
+  var gs=S.today.filter(function(g){ return g.h&&g.a; });
+  if(!gs.length) return card('Around the league','<div class="empty">Nothing on tonight.</div>','o6');
   var rank={'in':0,'pre':1,'post':2};
   gs=gs.slice().sort(function(x,y){ return (rank[x.st]-rank[y.st])||(new Date(x.date)-new Date(y.date)); });
-  var n=gs.length, show=gs.slice(0,9);
-  return card('Around the league','<div class="games">'+show.map(function(g){ return gameCard(g,{it:rootFor(g),foot:false}); }).join('')+'</div>'+
+  var n=gs.length, show=gs.slice(0,10);
+  return card('Around the league','<div class="games">'+show.map(function(g){ return gameCard(g,{it:rootFor(g),foot:false,cls:String(g.id)===String(S.hm.id)?'picked':''}); }).join('')+'</div>'+
     (n>show.length?'<div style="margin-top:9px"><a class="lnk" href="#live">the full scoreboard, all '+n+' games &rsaquo;</a></div>':''),'o6',
     '<span class="gn">'+plural(n,'game')+'</span>');
 }
@@ -2665,15 +2688,15 @@ function hmDiv(){
 }
 function hmNext(){
   var now=Date.now()-3*3600e3;
-  var list=teamGames(FAV).filter(function(x){ return x.st!==2&&new Date(x.date).getTime()>now&&String(x.id)!==String(S.hm.id); }).slice(0,4);
+  var list=teamGames(FAV).filter(function(x){ return x.st!==2&&new Date(x.date).getTime()>now; }).slice(0,4);
   if(!list.length) return '';
   var body='<table class="tsch">'+list.map(function(x){
     var o=opp(x,FAV);
-    return '<tr data-gid="'+esc(x.id)+'"><td>'+wday(x.date)+' '+dshort(x.date)+'</td>'+
+    return '<tr data-gid="'+esc(x.id)+'"'+(String(x.id)===String(S.hm.id)?' class="next"':'')+'><td>'+wday(x.date)+' '+dshort(x.date)+'</td>'+
       '<td><div class="op">'+imgT(o)+esc((x.h===FAV?'vs ':'at ')+nick(o))+'</div></td>'+
       '<td class="rs">'+puck(x.date)+(x.ty===1?' pre':'')+'</td></tr>';
   }).join('')+'</table>';
-  return card('Next up',body,'o8','<span class="gn">tap a game</span>');
+  return card('Next up',body,'o8','<span class="gn">tap to feature it</span>');
 }
 function renderHome(){
   if(!$('hmTop')) return;
@@ -3555,8 +3578,14 @@ document.addEventListener('click',function(ev){
     var hitName=!inCard||t.closest('.nm')||t.tagName==='IMG';
     if(hitName){ ev.preventDefault(); openTeam(tm.getAttribute('data-tid')); return; }
   }
+  if(t.closest('[data-hmclear]')){ hmUnfeature(); return; }
+  var go=t.closest('[data-gcopen]');
+  if(go){ if(S.tmv.id) closeTeam(); openGame(go.getAttribute('data-gcopen')); return; }
   var g=t.closest('[data-gid]');
-  if(g){ var gid=g.getAttribute('data-gid'); if(S.tmv.id) closeTeam(); openGame(gid); return; }
+  if(g){ var gid=g.getAttribute('data-gid');
+    /* v14: on Home a game card brings that game up here; the hero button is the way into the game center */
+    if(S.view==='home'&&!S.tmv.id&&!S.pl.id&&t.closest('#secHome')){ hmFeature(gid); return; }
+    if(S.tmv.id) closeTeam(); openGame(gid); return; }
   if(t.closest('#stBtn')&&anyLive()){ S.flt='all'; lsSet('cr-flt','all'); syncFlt(); }
 });
 document.addEventListener('mousemove',function(ev){ if(S.view==='game'&&ev.target.closest&&ev.target.closest('#rinkw')) rinkHover(ev); else { var tp=$('rtip'); if(tp) tp.style.display='none'; } });
