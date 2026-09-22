@@ -786,14 +786,27 @@ svg.rink circle.goal{stroke:#fff; stroke-width:.55}
 svg.rink path.blk{stroke-width:.5; fill:none}
 svg.rink .hl{fill:none; stroke:#fff; stroke-width:.4; stroke-dasharray:1 .6}
 svg.rink .dim{opacity:.18}
-.rleg{display:flex; flex-wrap:wrap; gap:12px; align-items:center; font-size:11px; color:var(--mute); margin-top:8px}
-.rleg span{display:inline-flex; align-items:center; gap:5px}
-.rleg svg{width:12px; height:12px}
-.rctl{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px}
-.rctl .seg button{padding:3px 8px; font-size:10.5px}
-.rctl .seg button img{width:14px; height:14px; object-fit:contain; vertical-align:-3px}
-.rtot{display:flex; justify-content:space-between; font-size:11px; color:var(--mute); margin:0 2px 5px}
-.rtot b{font-family:var(--display); font-size:16px; color:var(--ink); margin-right:4px}
+/* v9: quieter controls, the legend folded into the type chips, a two-column totals line */
+.rctl{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-bottom:10px}
+.rctl .seg{padding:2px; border-radius:8px; flex-wrap:nowrap}
+.rctl .seg button{padding:4px 9px; font-size:10.5px; letter-spacing:.03em; display:inline-flex; align-items:center; gap:5px; white-space:nowrap}
+.rctl .seg button img{width:14px; height:14px; object-fit:contain; flex:none}
+.rctl .seg button.on{background:rgba(31,168,96,.15); color:#a3ecc3; box-shadow:inset 0 0 0 1px rgba(31,168,96,.42)}
+.rctl .seg.kinds button{color:var(--dim)}
+.rctl .seg.kinds button.on{background:rgba(255,255,255,.05); color:var(--ink); box-shadow:inset 0 0 0 1px #39404f}
+.rctl .seg.kinds button svg{width:11px; height:11px; flex:none; color:#c9ced8}
+.rctl .seg.kinds button:not(.on) svg{opacity:.3}
+.rctl .seg.kinds button:not(.on) span{opacity:.8}
+.rtot{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 8px; font-size:11px; color:var(--mute)}
+.rtot .rt{display:flex; flex-direction:column; gap:1px; min-width:0}
+.rtot .rt.h{align-items:flex-end; text-align:right}
+.rtot .tm{display:inline-flex; align-items:center; gap:5px; font-family:var(--display); font-size:13px; letter-spacing:.06em}
+.rtot .rt.h .tm{flex-direction:row-reverse}
+.rtot .tm img{width:15px; height:15px; object-fit:contain; flex:none}
+.rtot .n{display:flex; align-items:baseline; gap:4px}
+.rtot b{font-family:var(--display); font-size:21px; line-height:1; color:var(--ink)}
+.rtot i{font-style:normal; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim)}
+.rtot .sub{font-size:10.5px; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%}
 .rtip{position:absolute; pointer-events:none; background:#0b0e14; border:1px solid var(--line); border-radius:6px; padding:6px 8px; font-size:11px; max-width:240px; color:var(--mute); display:none; z-index:5}
 .rtip b{color:var(--ink); display:block; font-weight:600}
 .lastev{display:flex; align-items:center; gap:10px; margin:10px 0 2px; padding:8px 11px; border-radius:7px; background:var(--card2); border-left:3px solid var(--dim); font-size:12px}
@@ -802,14 +815,27 @@ svg.rink .dim{opacity:.18}
 .lastev span{color:var(--mute); min-width:0}
 .lastev em{font-style:normal; margin-left:auto; color:var(--dim); white-space:nowrap; font-size:11px}
 .slist{list-style:none; margin:8px 0 0; padding:0; max-height:250px; overflow:auto}
-.slist li{display:grid; grid-template-columns:44px 18px minmax(0,1fr) auto; gap:8px; align-items:center; padding:5px 0; border-bottom:1px solid #1a1f29; font-size:12px; cursor:pointer}
+.slist li{display:grid; grid-template-columns:58px 18px minmax(0,1fr) auto; gap:8px; align-items:center; padding:5px 0; border-bottom:1px solid #1a1f29; font-size:12px; cursor:pointer}
 .slist li:hover{background:rgba(255,255,255,.03)}
 .slist li.on{background:rgba(255,255,255,.06)}
-.slist li .t{color:var(--dim); font-size:10.5px; font-weight:600}
+.slist li .t{color:var(--dim); font-size:10.5px; font-weight:600; white-space:nowrap}
 .slist li img{width:17px; height:17px; object-fit:contain}
 .slist li .k{font-size:9.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; padding:1px 5px; border-radius:3px; background:#1d222c; color:var(--mute)}
 .slist li .k.G{background:rgba(232,163,61,.2); color:#f0bd73}
 .slist li .k.S{background:rgba(31,168,96,.2); color:#7ee2a8}
+/* v9: the rink earns the full card width on a phone, and the markers scale up to match */
+@media (max-width:760px){
+  .rinkw{margin:0 -14px}
+  svg.rink circle.miss{stroke-width:.7} svg.rink circle.goal{stroke-width:.85}
+  svg.rink path.blk{stroke-width:.8} svg.rink .hl{stroke-width:.55; stroke-dasharray:1.4 .9}
+  svg.rink .zl{font-size:3.6px}
+  .rctl{gap:5px} .rctl .seg button{padding:4px 7px}
+  .rtot{gap:8px} .rtot b{font-size:19px}
+  .slist li{grid-template-columns:50px 16px minmax(0,1fr) auto; gap:6px; font-size:11.5px}
+  .slist li .t{font-size:10px; white-space:nowrap}
+  .slist li .k{font-size:9px; padding:1px 4px}
+  .lastev{gap:8px; padding:7px 9px}
+}
 .gl2{display:grid; grid-template-columns:58px 22px 42px minmax(0,1fr) 44px; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid #1a1f29; font-size:12px}
 .gl2:last-child{border-bottom:none}
 .gl2 .in{color:var(--dim); font-size:11px; font-weight:600}
@@ -1222,7 +1248,7 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v5';
+var VERSION='v9';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -2029,7 +2055,14 @@ function gcHeader(){
 
 /* the rink: every attempt, normalised so the away side shoots left and the home side shoots right */
 var RK={G:'Goal',S:'On goal',M:'Missed',B:'Blocked'};
+/* v9: the type chips carry the marker itself, so the separate legend row is gone */
+var RGLY={G:'<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="3.5" fill="currentColor" stroke="#fff" stroke-width="1.1"/></svg>',
+  S:'<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="3" fill="currentColor"/></svg>',
+  M:'<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>',
+  B:'<svg viewBox="0 0 10 10"><path d="M2 2L8 8M8 2L2 8" stroke="currentColor" stroke-width="1.5"/></svg>'};
+function rinkScale(){ return window.innerWidth<760?1.5:1; }
 function rinkSVG(list,cols,ids,sel){
+  var RS=rinkScale();
   var s='<svg class="rink" viewBox="-1 -1 202 87" role="img" aria-label="Shot map">';
   s+='<rect class="ice" x="0" y="0" width="200" height="85" rx="28" ry="28"/>';
   s+='<line class="gl" x1="11" y1="2.5" x2="11" y2="82.5"/><line class="gl" x1="189" y1="2.5" x2="189" y2="82.5"/>';
@@ -2040,13 +2073,14 @@ function rinkSVG(list,cols,ids,sel){
   [80,120].forEach(function(x){ [20.5,64.5].forEach(function(y){ s+='<circle class="dot" cx="'+x+'" cy="'+y+'" r=".8"/>'; }); });
   s+='<path class="crease" d="M11 36.5 h4.5 a1.5 6 0 0 1 0 12 h-4.5 Z"/><path class="crease" d="M189 36.5 h-4.5 a1.5 6 0 0 0 0 12 h4.5 Z"/>';
   s+='<rect class="net" x="7.7" y="39.5" width="3.3" height="6"/><rect class="net" x="189" y="39.5" width="3.3" height="6"/>';
-  s+='<text class="zl" x="38" y="44">'+esc(ab(ids.a))+' SHOOT THIS WAY</text><text class="zl" x="162" y="44">'+esc(ab(ids.h))+' SHOOT THIS WAY</text>';
+  s+='<text class="zl" x="40" y="82">'+esc(ab(ids.a))+' SHOOT THIS WAY</text><text class="zl" x="160" y="82">'+esc(ab(ids.h))+' SHOOT THIS WAY</text>';
   var order={M:0,B:1,S:2,G:3};
   list.slice().sort(function(a,b){ return order[a.k]-order[b.k]; }).forEach(function(q){
     var col=q.t===ids.h?cols.h:cols.a, dim=sel&&sel!==q.id?' dim':'';
-    if(q.k==='B'){ var d=1.3; s+='<path class="blk s'+dim+'" data-pid="'+q.id+'" stroke="'+col+'" d="M'+(q.x-d)+' '+(q.y-d)+'L'+(q.x+d)+' '+(q.y+d)+'M'+(q.x+d)+' '+(q.y-d)+'L'+(q.x-d)+' '+(q.y+d)+'"/>'; }
-    else s+='<circle class="s'+(q.k==='M'?' miss':'')+(q.k==='G'?' goal':'')+dim+'" data-pid="'+q.id+'" cx="'+q.x+'" cy="'+q.y+'" r="'+(q.k==='G'?2.6:q.k==='S'?1.7:1.5)+'" fill="'+col+'"'+(q.k==='M'?' stroke="'+col+'"':'')+'/>';
-    if(sel===q.id) s+='<circle class="hl" cx="'+q.x+'" cy="'+q.y+'" r="4.2"/>';
+    if(q.k==='B'){ var d=1.3*RS, x0=(q.x-d).toFixed(2), x1=(q.x+d).toFixed(2), y0=(q.y-d).toFixed(2), y1=(q.y+d).toFixed(2);
+      s+='<path class="blk s'+dim+'" data-pid="'+q.id+'" stroke="'+col+'" d="M'+x0+' '+y0+'L'+x1+' '+y1+'M'+x1+' '+y0+'L'+x0+' '+y1+'"/>'; }
+    else s+='<circle class="s'+(q.k==='M'?' miss':'')+(q.k==='G'?' goal':'')+dim+'" data-pid="'+q.id+'" cx="'+q.x+'" cy="'+q.y+'" r="'+((q.k==='G'?2.6:q.k==='S'?1.7:1.5)*RS).toFixed(2)+'" fill="'+col+'"'+(q.k==='M'?' stroke="'+col+'"':'')+'/>';
+    if(sel===q.id) s+='<circle class="hl" cx="'+q.x+'" cy="'+q.y+'" r="'+(4.2*RS).toFixed(2)+'"/>';
   });
   return s+'</svg>';
 }
@@ -2067,29 +2101,28 @@ function gcRink(){
   var list=all.filter(function(q){ return (g.team==='all'||q.t===g.team)&&(g.per==='all'||String(q.per)===g.per)&&g.kinds[q.k]; });
   function tot(id){ var o={G:0,S:0,M:0,B:0}; all.filter(function(q){ return q.t===id&&(g.per==='all'||String(q.per)===g.per); }).forEach(function(q){ o[q.k]++; }); return o; }
   var ta=tot(ids.a), th=tot(ids.h);
-  var ctl='<div class="rctl"><span class="seg">'+[['all','Both'],[ids.a,imgT(ids.a)+' '+esc(ab(ids.a))],[ids.h,imgT(ids.h)+' '+esc(ab(ids.h))]].map(function(b){ return '<button data-rt="'+b[0]+'" class="'+(g.team===b[0]?'on':'')+'">'+b[1]+'</button>'; }).join('')+'</span>'+
+  var ctl='<div class="rctl"><span class="seg">'+[['all','Both'],[ids.a,imgT(ids.a)+esc(ab(ids.a))],[ids.h,imgT(ids.h)+esc(ab(ids.h))]].map(function(b){ return '<button data-rt="'+b[0]+'" class="'+(g.team===b[0]?'on':'')+'">'+b[1]+'</button>'; }).join('')+'</span>'+
     '<span class="seg">'+[['all','All']].concat(Object.keys(pers).sort().map(function(p){ return [p,perName(+p)]; })).map(function(b){ return '<button data-rp="'+b[0]+'" class="'+(g.per===b[0]?'on':'')+'">'+b[1]+'</button>'; }).join('')+'</span>'+
-    '<span class="seg">'+['G','S','M','B'].map(function(k){ return '<button data-rk="'+k+'" class="'+(g.kinds[k]?'on':'')+'">'+RK[k]+'</button>'; }).join('')+'</span></div>';
-  function line(o,id){ return '<span><b>'+(o.G+o.S)+'</b>SOG &middot; '+o.G+' G &middot; '+o.M+' missed &middot; '+o.B+' blocked</span>'; }
-  var tots='<div class="rtot"><span style="color:'+cols.a+'">'+esc(ab(ids.a))+'</span>'+line(ta)+'<span style="flex:1"></span>'+line(th)+'<span style="color:'+cols.h+';margin-left:6px">'+esc(ab(ids.h))+'</span></div>';
-  var leg='<div class="rleg">'+
-    '<span><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="#c9ced8" stroke="#fff" stroke-width="1.2"/></svg>Goal</span>'+
-    '<span><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="3" fill="#c9ced8"/></svg>On goal</span>'+
-    '<span><svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="3" fill="none" stroke="#c9ced8" stroke-width="1.2"/></svg>Missed</span>'+
-    '<span><svg viewBox="0 0 10 10"><path d="M2 2L8 8M8 2L2 8" stroke="#c9ced8" stroke-width="1.4"/></svg>Blocked</span>'+
-    '<span style="margin-left:auto"><i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+cols.a+'"></i> '+esc(ab(ids.a))+' <i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+cols.h+';margin-left:8px"></i> '+esc(ab(ids.h))+'</span></div>';
-  var last=lastEvent();
+    '<span class="seg kinds">'+['G','S','M','B'].map(function(k){ return '<button data-rk="'+k+'" class="'+(g.kinds[k]?'on':'')+'" title="'+RK[k]+'">'+RGLY[k]+'<span>'+RK[k]+'</span></button>'; }).join('')+'</span></div>';
+  function tside(o,id,col,h){
+    return '<div class="rt'+(h?' h':'')+'"><span class="tm" style="color:'+col+'">'+imgT(id)+esc(ab(id))+'</span>'+
+      '<span class="n"><b>'+(o.G+o.S)+'</b><i>SOG</i></span>'+
+      '<span class="sub">'+o.G+' G &middot; '+o.M+' miss &middot; '+o.B+' blk</span></div>';
+  }
+  var tots='<div class="rtot">'+tside(ta,ids.a,cols.a,false)+tside(th,ids.h,cols.h,true)+'</div>';
+  var last=lastEvent(list.length?list[list.length-1].id:null);
   var rows=list.slice().reverse().slice(0,60).map(function(q){
     return '<li data-pid="'+q.id+'" class="'+(g.sel===q.id?'on':'')+'"><span class="t">'+perName(q.per)+' '+esc(q.p.clock.displayValue)+'</span>'+imgT(q.t)+'<span>'+esc(q.p.text)+'</span><span class="k '+q.k+'">'+RK[q.k]+'</span></li>';
   }).join('');
-  var body=ctl+tots+'<div class="rinkw" id="rinkw">'+rinkSVG(list,cols,ids,g.sel)+'<div class="rtip" id="rtip"></div></div>'+leg+last+
+  var body=ctl+tots+'<div class="rinkw" id="rinkw">'+rinkSVG(list,cols,ids,g.sel)+'<div class="rtip" id="rtip"></div></div>'+last+
     (rows?'<ol class="slist">'+rows+'</ol>':'<div class="empty">No shot attempts yet.</div>');
   return card('Shot map',body,'o1','<span class="gn">'+list.length+' attempts shown</span>');
 }
-function lastEvent(){
+function lastEvent(skipId){
   if(gcState()!=='in') return '';
   var ps=plays().filter(function(p){ var t=(p.type||{}).text; return t&&!/Period Start|Period End|End of Game|Stoppage|Shootout End/.test(t); });
   var p=ps[ps.length-1]; if(!p) return '';
+  if(skipId&&String(p.id)===String(skipId)) return '';   /* v9: the banner would only repeat the top row */
   var k=shotKind(p), cls=k==='G'?'goal':k?'shot':isPen(p)?'pen':'';
   return '<div class="lastev '+cls+'"><b>'+esc(p.type.text)+'</b><span>'+esc(p.text)+'</span><em>'+perName(p.period.number)+' '+esc(p.clock.displayValue)+'</em></div>';
 }
@@ -3307,6 +3340,11 @@ window.addEventListener('hashchange',route);
   fb.hidden=false;
   fb.addEventListener('click',function(){ if(document.fullscreenElement) document.exitFullscreen(); else de.requestFullscreen().catch(function(){}); });
   document.addEventListener('fullscreenchange',function(){ fb.textContent=document.fullscreenElement?'Exit full screen':'Fullscreen'; });
+})();
+
+/* v9: markers scale with the viewport, so redraw the game view when it crosses the phone breakpoint */
+(function(){ var was=rinkScale(), t;
+  window.addEventListener('resize',function(){ clearTimeout(t); t=setTimeout(function(){ var n=rinkScale(); if(n!==was){ was=n; if(S.view==='game') gcRender(); } },200); });
 })();
 
 /* ---------- loops ---------- */
