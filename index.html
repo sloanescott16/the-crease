@@ -1265,7 +1265,7 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v11';
+var VERSION='v12';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -2222,6 +2222,9 @@ function flowEvents(){
 function gcFlow(){
   var ids=gcIds(), cols=pairCols(ids.a,ids.h), ev=flowEvents();
   if(ev.length<3) return '';
+  /* v12: the favourite rides above the line whenever they are playing, as on the other three sites */
+  var up=(ids.h===FAV||ids.a===FAV)?FAV:ids.h, dn=up===ids.h?ids.a:ids.h;
+  var cu=up===ids.h?cols.h:cols.a, cd=up===ids.h?cols.a:cols.h;
   var ps=plays(), endT=Math.max(600,ptime(ps[ps.length-1]));
   ev.forEach(function(e){ if(e.t>endT) endT=e.t; });   /* never let a marker fall off the end */
   var ca=0, ch=0; shots().forEach(function(p){ if(shooterTeam(p)===ids.h) ch++; else ca++; });
@@ -2229,7 +2232,7 @@ function gcFlow(){
   for(i=0;i<=N;i++){
     var t=i*step, v=0;
     while(lo<ev.length&&ev[lo].t<t-3*SIG) lo++;
-    for(k2=lo;k2<ev.length&&ev[k2].t<t+3*SIG;k2++){ var d=(t-ev[k2].t)/SIG; v+=ev[k2].w*Math.exp(-d*d); }
+    for(k2=lo;k2<ev.length&&ev[k2].t<t+3*SIG;k2++){ var d=(t-ev[k2].t)/SIG, sg=(ev[k2].w>0?ids.h:ids.a)===up?1:-1; v+=sg*Math.abs(ev[k2].w)*Math.exp(-d*d); }
     m.push(v); if(Math.abs(v)>maxA) maxA=Math.abs(v);
   }
   maxA=Math.max(maxA,8);
@@ -2243,19 +2246,19 @@ function gcFlow(){
   var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'+
     '<defs><clipPath id="mfT"><rect x="0" y="0" width="'+W+'" height="'+MID+'"/></clipPath>'+
     '<clipPath id="mfB"><rect x="0" y="'+MID+'" width="'+W+'" height="'+(H-MID)+'"/></clipPath></defs>'+g+
-    '<g clip-path="url(#mfT)"><path d="'+area+'" fill="'+cols.h+'" opacity=".4"/><path d="'+line+'" fill="none" stroke="'+cols.h+'" stroke-width="2" vector-effect="non-scaling-stroke"/></g>'+
-    '<g clip-path="url(#mfB)"><path d="'+area+'" fill="'+cols.a+'" opacity=".4"/><path d="'+line+'" fill="none" stroke="'+cols.a+'" stroke-width="2" vector-effect="non-scaling-stroke"/></g>'+
+    '<g clip-path="url(#mfT)"><path d="'+area+'" fill="'+cu+'" opacity=".4"/><path d="'+line+'" fill="none" stroke="'+cu+'" stroke-width="2" vector-effect="non-scaling-stroke"/></g>'+
+    '<g clip-path="url(#mfB)"><path d="'+area+'" fill="'+cd+'" opacity=".4"/><path d="'+line+'" fill="none" stroke="'+cd+'" stroke-width="2" vector-effect="non-scaling-stroke"/></g>'+
     '<line class="mfax" x1="0" x2="'+W+'" y1="'+MID+'" y2="'+MID+'" vector-effect="non-scaling-stroke"/></svg>';
   var dots=ev.filter(function(e){ return e.k==='G'; }).map(function(e){
-    return '<span class="mfg" style="left:'+(e.t/endT*100).toFixed(2)+'%;background:'+(e.team===ids.h?cols.h:cols.a)+'" '+
+    return '<span class="mfg" style="left:'+Math.min(99.5,Math.max(.5,e.t/endT*100)).toFixed(2)+'%;background:'+(e.team===up?cu:cd)+'" '+
       'title="'+esc(perName((e.p.period||{}).number||1)+' '+(((e.p.clock)||{}).displayValue||'')+' · '+(e.p.text||''))+'"></span>';
   }).join('');
-  var chips='<span class="mft h" style="color:'+cols.h+'">'+imgT(ids.h)+esc(ab(ids.h))+'</span>'+
-    '<span class="mft a" style="color:'+cols.a+'">'+imgT(ids.a)+esc(ab(ids.a))+'</span>';
+  var chips='<span class="mft h" style="color:'+cu+'">'+imgT(up)+esc(ab(up))+'</span>'+
+    '<span class="mft a" style="color:'+cd+'">'+imgT(dn)+esc(ab(dn))+'</span>';
   var labs=[[0,1200,'1st'],[1200,2400,'2nd'],[2400,3600,'3rd'],[3600,Math.max(endT,3900),gcType()===3?'OT':'OT/SO']]
     .filter(function(z){ return z[0]<endT-45; }).map(function(z){
       return '<span class="mfp" style="left:'+((z[0]+Math.min(endT,z[1]))/2/endT*100).toFixed(2)+'%">'+z[2]+'</span>'; }).join('');
-  var now=m[m.length-1], rel=Math.abs(now)/maxA, who=now>0?ids.h:ids.a, live=gcState()==='in';
+  var now=m[m.length-1], rel=Math.abs(now)/maxA, who=now>0?up:dn, live=gcState()==='in';
   var lead=rel<0.15?'Even run of play':(nick(who)+(rel>0.55?' all over them':' with the better of it'));
   var note='<b>'+esc(lead)+'</b>'+(live?' right now.':' by the end.')+' Attempts '+esc(ab(ids.a))+' '+ca+', '+esc(ab(ids.h))+' '+ch+'.';
   var body='<div class="mflow"><div class="mfw">'+svg+chips+dots+'</div><div class="mfx">'+labs+'</div><div class="mfnote">'+note+'</div></div>';
