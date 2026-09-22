@@ -1155,6 +1155,26 @@ a.hmt:hover{border-color:#39404f}
 .hmwhen{font-size:12px; color:var(--mute)}
 .hmh .hmgo{margin-left:auto}
 .hmflow:not(:empty){margin-bottom:12px}
+/* v16: win probability */
+.wpt{display:flex; align-items:baseline; gap:10px; margin-bottom:6px}
+.wpt img{width:26px; height:26px; object-fit:contain; align-self:center; flex:none}
+.wpt .wv{font-family:var(--display); font-weight:700; font-size:40px; line-height:1}
+.wpt .wl{font-size:11px; color:var(--mute)}
+.wpw{position:relative}
+.wpw svg{width:100%; display:block}
+.wpw .ax{fill:var(--dim); font:600 9px var(--body)}
+.wpw .gl{stroke:#232936; stroke-width:1}
+.wpw .mid{stroke:#3a4353; stroke-dasharray:3 3}
+.wpw .gd{stroke:#fff; stroke-width:1.1}
+.wpn{margin:9px 0 0; font-size:10.5px; color:var(--dim); line-height:1.45}
+.wpa{display:inline-block; font-size:10px; font-weight:800; padding:1px 5px; border-radius:3px; vertical-align:1px}
+.wpa.g{background:rgba(184,217,74,.16); color:var(--good)} .wpa.r{background:rgba(224,71,91,.16); color:#f18a97}
+.swings{margin-top:10px; padding-top:8px; border-top:1px solid var(--line)}
+.swings h4{margin:0 0 4px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim)}
+.swings div{display:flex; gap:8px; align-items:baseline; padding:4px 0; font-size:12px; color:var(--mute)}
+.swings div .wpa{margin:0; flex:none; min-width:40px; text-align:center}
+.swings div .in{flex:none; color:var(--dim); font-size:10.5px; font-weight:600; min-width:52px}
+.swings div span:last-child{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .hmband{cursor:pointer; border-radius:10px; transition:box-shadow .15s}
 .hmband:hover{box-shadow:0 0 0 1px var(--line)}
 .hmband .gct .ts,.hmband .gcm{cursor:pointer}
@@ -1323,7 +1343,7 @@ a.hmt:hover{border-color:#39404f}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v15';
+var VERSION='v16';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -2711,7 +2731,7 @@ function renderHome(){
   var A='',B='';
   if(st==='in'||st==='post'){
     A=hmWith(gcScoring)+hmWith(gcPens);
-    B=hmWith(gcLine)+hmWith(gcStars)+hmWith(preForm);
+    B=hmWith(gcWP)+hmWith(gcLine)+hmWith(gcStars)+hmWith(preForm);
   } else if(st==='pre'){
     A=hmWith(preTape)+hmWith(preGoalies);
     B=hmWith(preStake)+hmWith(preWin)+hmWith(preForm);
@@ -2720,6 +2740,97 @@ function renderHome(){
   $('hmB').innerHTML=B;
   $('hmC').innerHTML=hmTonight()+hmDiv()+hmNext();
   $('hmNote').textContent=new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'});
+}
+
+/* ---------- v16: win probability ----------
+   The NHL feed publishes none, so this is our own model: the score now, the time left, and how good
+   the two clubs are, played forward as goals arriving at a Poisson rate. Labelled as ours, not ESPN's. */
+function wpP0(aId,hId){
+  var h=strength(hId), a=strength(aId);
+  var p=h*(1-a)/((h*(1-a)+a*(1-h))||1);
+  return Math.min(0.85,Math.max(0.15,p+0.035));   /* home ice, same as the preview */
+}
+function pois(lam,k){ if(lam<=0) return k===0?1:0; var t=Math.exp(-lam); for(var i=1;i<=k;i++) t*=lam/i; return t; }
+/* home win chance with `mar` goals in hand and `left` seconds of regulation to play */
+function wpAt(mar,left,p0,shootout){
+  var ot=0.5+(p0-0.5)*0.35;                       /* three on three then a shootout is close to a coin flip */
+  if(shootout) return mar>0?1:mar<0?0:ot;
+  if(left<=0) return mar>0?1:mar<0?0:ot;
+  var adv=(p0-0.5)*1.1, base=3.05*left/3600;
+  var lh=base*(1+adv), la=base*(1-adv);
+  if(left<150&&mar!==0&&Math.abs(mar)<=2){        /* the net comes out: the chasing team presses, the leader gets the empty one */
+    if(mar>0){ la*=1.9; lh*=2.1; } else { lh*=1.9; la*=2.1; }
+  }
+  var N=11, ph=[], pa=[], i, j, win=0, tie=0;
+  for(i=0;i<=N;i++){ ph.push(pois(lh,i)); pa.push(pois(la,i)); }
+  for(i=0;i<=N;i++) for(j=0;j<=N;j++){ var d=mar+i-j, q=ph[i]*pa[j]; if(d>0) win+=q; else if(d===0) tie+=q; }
+  return Math.min(0.999,Math.max(0.001,win+tie*ot));
+}
+/* one point per play, so the line follows the game rather than the goals alone */
+function wpSeries(){
+  var ids=gcIds(), st=gcState(), p0=wpP0(ids.a,ids.h);
+  var ps=plays().filter(function(p){ return p.period&&p.clock; });
+  var pts=[{t:0,v:p0,p:null}];
+  var mar=0, so=false;
+  ps.forEach(function(p){
+    if(isSO(p)){ so=true; return; }
+    var t=gsec(p.period.number,p.clock.displayValue);
+    if(p.homeScore!=null&&p.awayScore!=null) mar=(+p.homeScore||0)-(+p.awayScore||0);
+    pts.push({t:t, v:wpAt(mar,Math.max(0,3600-t),p0), p:p});
+  });
+  var c=gcComp(), sstat=c.status||{};
+  if(st==='in'){
+    var now=gsec(sstat.period||1,sstat.displayClock||'0:00');
+    if(now>pts[pts.length-1].t) pts.push({t:now,v:wpAt(mar,Math.max(0,3600-now),p0),p:null});
+  } else if(st==='post'){
+    var A=gcSide('away'), H=gcSide('home');
+    var fin=(+(H.score||0))-(+(A.score||0));
+    pts.push({t:Math.max(3600,pts[pts.length-1].t),v:fin>0?1:fin<0?0:pts[pts.length-1].v,p:null});
+  }
+  if(so) pts[pts.length-1].v=wpAt(mar,0,p0,true);
+  return {pts:pts, p0:p0, ids:ids, so:so};
+}
+function gcWP(){
+  var st=gcState(); if(st==='pre') return '';
+  var S1=wpSeries(), pts=S1.pts, ids=S1.ids;
+  if(pts.length<3) return '';
+  var up=(ids.h===FAV||ids.a===FAV)?FAV:ids.h;          /* the Stars ride the line whenever they are playing */
+  var flip=up!==ids.h;
+  var cols=pairCols(ids.a,ids.h), col=up===ids.h?cols.h:cols.a;
+  var v=function(q){ return flip?1-q.v:q.v; };
+  var endT=Math.max(3600,pts[pts.length-1].t);
+  var W=600,H=150,pl=26,pr=8,pt=8,pb=15, iw=W-pl-pr, ih=H-pt-pb;
+  function X(t){ return pl+t/endT*iw; }
+  function Y(q){ return pt+(1-q)*ih; }
+  var d=pts.map(function(q,i){ return (i?'L':'M')+X(q.t).toFixed(1)+','+Y(v(q)).toFixed(1); }).join(' ');
+  var area='M'+X(0).toFixed(1)+','+Y(0.5).toFixed(1)+'L'+pts.map(function(q){ return X(q.t).toFixed(1)+','+Y(v(q)).toFixed(1); }).join('L')+'L'+X(pts[pts.length-1].t).toFixed(1)+','+Y(0.5).toFixed(1)+'Z';
+  var grid='', lab='';
+  for(var k=1200;k<endT-60;k+=(k<3600?1200:(gcType()===3?1200:300))){
+    grid+='<line class="gl" x1="'+X(k).toFixed(1)+'" y1="'+pt+'" x2="'+X(k).toFixed(1)+'" y2="'+(pt+ih)+'"/>';
+  }
+  [[600,'1st'],[1800,'2nd'],[3000,'3rd']].forEach(function(p){ if(p[0]<endT) lab+='<text class="ax" x="'+X(p[0]).toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle">'+p[1]+'</text>'; });
+  if(endT>3600) lab+='<text class="ax" x="'+X((3600+endT)/2).toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle">'+(gcType()===3?'OT':'OT/SO')+'</text>';
+  var goals='';
+  pts.forEach(function(q,i){ if(!q.p||!q.p.scoringPlay||isSO(q.p)) return;
+    goals+='<circle class="gd" cx="'+X(q.t).toFixed(1)+'" cy="'+Y(v(q)).toFixed(1)+'" r="3.4" fill="'+col+'"><title>'+esc(perName(q.p.period.number)+' '+q.p.clock.displayValue+' · '+(q.p.text||'Goal'))+'</title></circle>';
+  });
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="height:150px">'+grid+lab+
+    '<path d="'+area+'" fill="'+col+'" opacity=".13"/>'+
+    '<line class="mid" x1="'+pl+'" y1="'+Y(0.5)+'" x2="'+(W-pr)+'" y2="'+Y(0.5)+'"/>'+
+    '<text class="ax" x="2" y="'+(pt+8)+'">100</text><text class="ax" x="6" y="'+(Y(0.5)+3)+'">50</text><text class="ax" x="10" y="'+(pt+ih)+'">0</text>'+
+    '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round"/>'+goals+'</svg>';
+  var cur=v(pts[pts.length-1]);
+  var head='<div class="wpt">'+imgT(up)+'<span class="wv" style="color:'+col+'">'+Math.round(cur*100)+'%</span><span class="wl">'+esc(nick(up))+(st==='post'?' (final)':' to win')+'</span></div>';
+  var sw=[];
+  for(var i=1;i<pts.length;i++) if(pts[i].p) sw.push({d:v(pts[i])-v(pts[i-1]), p:pts[i].p});
+  sw.sort(function(a,b){ return Math.abs(b.d)-Math.abs(a.d); });
+  sw=sw.filter(function(x){ return Math.abs(x.d)>=0.02; }).slice(0,4);
+  var swings=sw.length?'<div class="swings"><h4>Biggest swings</h4>'+sw.map(function(x){
+    return '<div><span class="wpa '+(x.d>0?'g':'r')+'">'+(x.d>0?'+':'')+Math.round(x.d*100)+'</span><span class="in">'+perName(x.p.period.number)+' '+esc(x.p.clock.displayValue)+'</span><span>'+esc(x.p.text||(x.p.type||{}).text||'')+'</span></div>';
+  }).join('')+'</div>':'';
+  return card('Win probability',head+'<div class="wpw">'+svg+'</div>'+swings+
+    '<p class="wpn">Ours, not the NHL\'s: the score, the clock and how the two clubs have played, with goals arriving at about three a side per sixty. Empty nets counted late.</p>','o1',
+    '<span class="gn">'+(st==='post'?'how it swung':'live')+'</span>');
 }
 
 function gcRender(){
@@ -2736,7 +2847,7 @@ function gcRender(){
     el.innerHTML=gcTop(st==='in'?'Game Center':'Game Breakdown')+gcHeader()+gcFlow()+'<div class="gc-grid">'+
       '<div class="gc-col gc-box">'+gcBox()+gcPBP()+'</div>'+
       '<div class="gc-col gc-mid">'+gcRink()+gcScoring()+gcPens()+'</div>'+
-      '<div class="gc-col gc-side">'+gcStars()+gcLine()+gcCompare()+gcInj()+'</div></div>';
+      '<div class="gc-col gc-side">'+gcWP()+gcStars()+gcLine()+gcCompare()+gcInj()+'</div></div>';
   }
   if(Math.abs(window.scrollY-keep)>2) window.scrollTo(0,keep);
 }
