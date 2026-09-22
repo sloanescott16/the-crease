@@ -1155,6 +1155,9 @@ a.hmt:hover{border-color:#39404f}
 .hmwhen{font-size:12px; color:var(--mute)}
 .hmh .hmgo{margin-left:auto}
 .hmflow:not(:empty){margin-bottom:12px}
+.hmband{cursor:pointer; border-radius:10px; transition:box-shadow .15s}
+.hmband:hover{box-shadow:0 0 0 1px var(--line)}
+.hmband .gct .ts,.hmband .gcm{cursor:pointer}
 #secHome .games .g{cursor:pointer}
 #secHome .games .g.picked{border-color:var(--blue); box-shadow:0 0 0 1px var(--blue) inset}
 #secHome .tsch tr{cursor:pointer}
@@ -1320,7 +1323,7 @@ a.hmt:hover{border-color:#39404f}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v14';
+var VERSION='v15';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -2667,7 +2670,8 @@ function hmHero(){
   var back=(S.hm.pin&&!hmIsFav())?'<button class="btn hmback" type="button" data-hmclear>&lsaquo; Back to the Stars</button>':'';
   return '<div class="hmhero'+(st==='in'?' live':'')+'">'+
     '<div class="hmh"><span class="hml'+(st==='in'?' on':st==='post'?' fin':'')+'">'+lab+'</span>'+when+back+cta+'</div>'+
-    hmWith(gcHeader)+(st==='in'?hmWith(function(){ return lastEvent(); }):'')+'</div>';
+    '<div class="hmband" data-gcopen="'+esc(S.hm.id)+'" title="Open the game center">'+hmWith(gcHeader)+'</div>'+
+    (st==='in'?hmWith(function(){ return lastEvent(); }):'')+'</div>';
 }
 function hmTonight(){
   var gs=S.today.filter(function(g){ return g.h&&g.a; });
@@ -3574,8 +3578,9 @@ document.addEventListener('click',function(ev){
   if((b=t.closest('[data-pid]'))){ var pid=b.getAttribute('data-pid'); S.gc.sel=S.gc.sel===pid?null:pid; gcRender(); return; }
   var tm=t.closest('[data-tid]');
   if(tm){
-    var inCard=tm.classList.contains('row')||tm.classList.contains('br');
-    var hitName=!inCard||t.closest('.nm')||t.tagName==='IMG';
+    var inBand=!!(t.closest&&t.closest('.hmband'));   /* v15: the hero banner opens the game center, its logos and names still open the team */
+    var inCard=tm.classList.contains('row')||tm.classList.contains('br')||(inBand&&tm.classList.contains('gct'));
+    var hitName=!inCard||t.closest('.nm')||(inBand&&t.closest('.tn'))||t.tagName==='IMG';
     if(hitName){ ev.preventDefault(); openTeam(tm.getAttribute('data-tid')); return; }
   }
   if(t.closest('[data-hmclear]')){ hmUnfeature(); return; }
