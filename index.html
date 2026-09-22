@@ -453,7 +453,11 @@ svg.dia rect.on{fill:var(--warn); stroke:var(--warn)}
   .gct{gap:7px; flex-wrap:wrap}
   .gct img{width:32px; height:32px}
   .gct .tn{font-size:17px} .gct .tr{font-size:10px}
-  .gct .ts{font-size:40px; margin-left:0}
+  /* v10: both scores sit against the middle block, each a mirror of the other.
+     margin-left:0 here left the away score parked beside its logo while the home score
+     kept its auto margin and hugged the centre, so the two numbers never lined up. */
+  .gct .ts{font-size:40px; margin-left:auto}
+  .gct.h .ts{margin-left:0; margin-right:auto}
   .gct.h{flex-direction:row-reverse}
   .gct>div:nth-child(2){order:3; flex-basis:100%}
   .gcm{min-width:0} .gcm .gs{font-size:16px} .gcm .gs3{display:none}
@@ -1248,7 +1252,7 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v9';
+var VERSION='v10';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
