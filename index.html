@@ -425,8 +425,9 @@ body.v-game #secLive,body.v-game #secSched,body.v-game #secStand,body.v-game #se
 .gct img{width:58px; height:58px; object-fit:contain; flex:none; filter:drop-shadow(0 0 3px rgba(255,255,255,.22))}
 .gct .tn{font-family:var(--display); font-size:28px; line-height:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .gct .tr{font-size:11.5px; color:var(--mute); margin-top:3px; white-space:nowrap}
-.gct .ts{font-family:var(--display); font-weight:700; font-size:64px; line-height:.9; margin-left:auto}
-.gct.h .ts{margin-left:0; margin-right:auto}
+/* v11: the score belongs beside its own logo and name, the way ESPN and the Real app draw it.
+   The auto margin used to shove both numbers into the middle, miles from the team they belong to. */
+.gct .ts{font-family:var(--display); font-weight:700; font-size:64px; line-height:.9; margin-left:2px}
 .gct.lose .ts,.gct.lose .tn{color:var(--dim)}
 .gcm{display:flex; flex-direction:column; align-items:center; gap:5px; min-width:130px}
 .gcm .gs{font-family:var(--display); font-size:22px; line-height:1; letter-spacing:.03em; text-transform:uppercase}
@@ -453,11 +454,8 @@ svg.dia rect.on{fill:var(--warn); stroke:var(--warn)}
   .gct{gap:7px; flex-wrap:wrap}
   .gct img{width:32px; height:32px}
   .gct .tn{font-size:17px} .gct .tr{font-size:10px}
-  /* v10: both scores sit against the middle block, each a mirror of the other.
-     margin-left:0 here left the away score parked beside its logo while the home score
-     kept its auto margin and hugged the centre, so the two numbers never lined up. */
-  .gct .ts{font-size:40px; margin-left:auto}
-  .gct.h .ts{margin-left:0; margin-right:auto}
+  /* v11: logo then score on one line, the name under it. Mirrored on the home side. */
+  .gct .ts{font-size:40px}
   .gct.h{flex-direction:row-reverse}
   .gct>div:nth-child(2){order:3; flex-basis:100%}
   .gcm{min-width:0} .gcm .gs{font-size:16px} .gcm .gs3{display:none}
@@ -854,9 +852,24 @@ svg.rink .dim{opacity:.18}
 .penr img{width:18px; height:18px; object-fit:contain}
 .penr b{color:var(--ink); font-weight:600}
 .penr em{font-style:normal; font-size:10.5px; color:var(--dim)}
-.flow svg{width:100%; height:auto; display:block}
-.flow .ax{fill:var(--dim); font:600 8px var(--body)}
-.flow .gl{stroke:#232936; stroke-width:1}
+/* v11: the game-flow wave. Home rides above the line, away below, goals are dots on the axis. */
+.mflow{margin:0}
+.mfw{position:relative; height:124px; border-radius:10px; overflow:hidden; background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(0,0,0,.18))}
+.mfw svg{position:absolute; inset:0; width:100%; height:100%; display:block}
+.mfw .mfax{stroke:#454e60}
+.mfw .mfdiv{stroke:#2b3241; stroke-dasharray:3 4}
+.mft{position:absolute; left:9px; display:inline-flex; align-items:center; gap:5px; font-family:var(--display);
+  font-size:13px; letter-spacing:.06em; text-shadow:0 1px 3px rgba(0,0,0,.65); pointer-events:none}
+.mft img{width:17px; height:17px; object-fit:contain}
+.mft.h{top:7px} .mft.a{bottom:7px}
+.mfg{position:absolute; top:50%; width:12px; height:12px; margin:-6px 0 0 -6px; border-radius:50%;
+  border:2px solid #0b0e14; box-shadow:0 0 0 1px rgba(255,255,255,.85), 0 0 9px rgba(255,255,255,.3)}
+.mfx{position:relative; height:14px; margin-top:3px}
+.mfp{position:absolute; top:0; transform:translateX(-50%); font-size:9.5px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--dim); font-weight:700; white-space:nowrap}
+.mfnote{font-size:11.5px; color:var(--mute); margin-top:4px}
+.mfnote b{color:var(--ink); font-weight:600}
+@media (max-width:760px){ .mfw{height:98px} .mft{font-size:12px} .mft img{width:15px;height:15px} }
 .pbpr{display:grid; grid-template-columns:40px 18px minmax(0,1fr); gap:8px; align-items:baseline; padding:4px 0 4px 16px; font-size:12px; color:var(--mute); border-left:2px solid transparent}
 .pbpr img{width:15px; height:15px; object-fit:contain; align-self:center}
 .pbpr .t{color:var(--dim); font-size:10.5px; font-weight:600}
@@ -1252,7 +1265,7 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v10';
+var VERSION='v11';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -2186,27 +2199,67 @@ function gcLine(){
   }
   return card('Line score','<div class="scroll"><table class="ls">'+head+row(A,ids.a)+row(H,ids.h)+'</table></div><div style="font-size:10px;color:var(--dim);margin-top:6px">Small numbers are shots on goal by period.</div>','o5');
 }
-function gcFlow(){
-  var ids=gcIds(), cols=pairCols(ids.a,ids.h);
-  var ps=shots(); if(!ps.length) return '';
-  var last=plays()[plays().length-1];
-  var endT=Math.max(3600,gsec(last.period.number,last.clock.displayValue));
-  var W=340,H=150,L=24,T=10,B=20,Rr=8;
-  var ca=0,ch=0,pa=['M'+L+' '+(H-B)],ph=['M'+L+' '+(H-B)],pts=[];
-  var maxY=Math.max(10,ps.length?Math.ceil(Math.max(ps.filter(function(p){return shooterTeam(p)===ids.a;}).length,ps.filter(function(p){return shooterTeam(p)===ids.h;}).length)/10)*10:10);
-  function X(t){ return L+(t/endT)*(W-L-Rr); } function Y(v){ return (H-B)-(v/maxY)*(H-B-T); }
-  ps.forEach(function(p){
-    var t=gsec(p.period.number,p.clock.displayValue), home=shooterTeam(p)===ids.h;
-    if(home){ ph.push('H'+X(t).toFixed(1)); ch++; ph.push('V'+Y(ch).toFixed(1)); } else { pa.push('H'+X(t).toFixed(1)); ca++; pa.push('V'+Y(ca).toFixed(1)); }
-    if(shotKind(p)==='G') pts.push('<circle cx="'+X(t).toFixed(1)+'" cy="'+Y(home?ch:ca).toFixed(1)+'" r="3.4" fill="'+(home?cols.h:cols.a)+'" stroke="#fff" stroke-width="1.2"><title>'+esc(p.text)+'</title></circle>');
+/* v11: game flow as a momentum wave. Every event nudges the line toward the team that made it and
+   fades away over a couple of minutes, so a shift with the run of play shows as a swell. */
+function ptime(p){ return gsec((((p||{}).period)||{}).number||1,((((p||{}).clock)||{}).displayValue)||'0:00'); }
+var MWT={G:9,S:3,M:1.7,B:1.2};
+function flowEvents(){
+  var ids=gcIds(), out=[];
+  plays().forEach(function(p){
+    if(isSO(p)) return;
+    var ty=((p.type||{}).text)||'', tid=String((p.team||{}).id||''), k=shotKind(p), w=0, team=tid;
+    if(k){ team=shooterTeam(p); w=MWT[k]; }
+    else if(isPen(p)){ team=(tid===ids.h?ids.a:ids.h); w=3; }
+    else if(/^hit/i.test(ty)) w=0.8;
+    else if(/takeaway/i.test(ty)) w=1.3;
+    else if(/giveaway/i.test(ty)){ team=(tid===ids.h?ids.a:ids.h); w=1.3; }
+    if(!w||(team!==ids.h&&team!==ids.a)) return;
+    out.push({t:ptime(p), w:(team===ids.h?1:-1)*w, k:k, p:p, team:team});
   });
-  pa.push('H'+X(endT)); ph.push('H'+X(endT));
+  out.sort(function(a,b){ return a.t-b.t; });
+  return out;
+}
+function gcFlow(){
+  var ids=gcIds(), cols=pairCols(ids.a,ids.h), ev=flowEvents();
+  if(ev.length<3) return '';
+  var ps=plays(), endT=Math.max(600,ptime(ps[ps.length-1]));
+  ev.forEach(function(e){ if(e.t>endT) endT=e.t; });   /* never let a marker fall off the end */
+  var ca=0, ch=0; shots().forEach(function(p){ if(shooterTeam(p)===ids.h) ch++; else ca++; });
+  var W=1000, H=100, MID=50, AMP=43, N=340, SIG=78, step=endT/N, lo=0, m=[], maxA=0, i, k2;
+  for(i=0;i<=N;i++){
+    var t=i*step, v=0;
+    while(lo<ev.length&&ev[lo].t<t-3*SIG) lo++;
+    for(k2=lo;k2<ev.length&&ev[k2].t<t+3*SIG;k2++){ var d=(t-ev[k2].t)/SIG; v+=ev[k2].w*Math.exp(-d*d); }
+    m.push(v); if(Math.abs(v)>maxA) maxA=Math.abs(v);
+  }
+  maxA=Math.max(maxA,8);
+  function X(t){ return t/endT*W; }
+  function Y(v){ return MID-(v/maxA)*AMP; }
+  var d=m.map(function(v,i){ return X(i*step).toFixed(2)+' '+Y(v).toFixed(2); });
+  var line='M'+d.join('L'), area='M0 '+MID+'L'+d.join('L')+'L'+W+' '+MID+'Z';
   var g='';
-  for(var v=0;v<=maxY;v+=maxY/2) g+='<line class="gl" x1="'+L+'" x2="'+(W-Rr)+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text class="ax" x="'+(L-4)+'" y="'+(Y(v)+3)+'" text-anchor="end">'+v+'</text>';
-  [[0,1200,'1st'],[1200,2400,'2nd'],[2400,3600,'3rd'],[3600,endT,'OT']].forEach(function(z){ if(z[0]>=endT) return; var x0=X(z[0]), x1=X(Math.min(endT,z[1])); if(z[0]) g+='<line class="gl" x1="'+x0+'" x2="'+x0+'" y1="'+T+'" y2="'+(H-B)+'"/>'; g+='<text class="ax" x="'+((x0+x1)/2)+'" y="'+(H-6)+'" text-anchor="middle">'+z[2]+'</text>'; });
-  var svg='<svg viewBox="0 0 '+W+' '+H+'">'+g+'<path d="'+pa.join('')+'" fill="none" stroke="'+cols.a+'" stroke-width="2"/><path d="'+ph.join('')+'" fill="none" stroke="'+cols.h+'" stroke-width="2"/>'+pts.join('')+'</svg>';
-  var lead=ca===ch?'Dead even on attempts':((ca>ch?ab(ids.a):ab(ids.h))+' out-attempting '+(ca>ch?ab(ids.h):ab(ids.a))+' '+Math.max(ca,ch)+'-'+Math.min(ca,ch));
-  return card('Game flow','<div class="wpt"><span class="l">'+esc(lead)+'. Shot attempts include blocked and missed; dots are goals.</span></div><div class="flow">'+svg+'</div>','o6');
+  [1200,2400,3600,4800].forEach(function(t){ if(t<endT-45){ var x=X(t).toFixed(1);
+    g+='<line class="mfdiv" x1="'+x+'" x2="'+x+'" y1="5" y2="'+(H-5)+'" vector-effect="non-scaling-stroke"/>'; } });
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'+
+    '<defs><clipPath id="mfT"><rect x="0" y="0" width="'+W+'" height="'+MID+'"/></clipPath>'+
+    '<clipPath id="mfB"><rect x="0" y="'+MID+'" width="'+W+'" height="'+(H-MID)+'"/></clipPath></defs>'+g+
+    '<g clip-path="url(#mfT)"><path d="'+area+'" fill="'+cols.h+'" opacity=".4"/><path d="'+line+'" fill="none" stroke="'+cols.h+'" stroke-width="2" vector-effect="non-scaling-stroke"/></g>'+
+    '<g clip-path="url(#mfB)"><path d="'+area+'" fill="'+cols.a+'" opacity=".4"/><path d="'+line+'" fill="none" stroke="'+cols.a+'" stroke-width="2" vector-effect="non-scaling-stroke"/></g>'+
+    '<line class="mfax" x1="0" x2="'+W+'" y1="'+MID+'" y2="'+MID+'" vector-effect="non-scaling-stroke"/></svg>';
+  var dots=ev.filter(function(e){ return e.k==='G'; }).map(function(e){
+    return '<span class="mfg" style="left:'+(e.t/endT*100).toFixed(2)+'%;background:'+(e.team===ids.h?cols.h:cols.a)+'" '+
+      'title="'+esc(perName((e.p.period||{}).number||1)+' '+(((e.p.clock)||{}).displayValue||'')+' · '+(e.p.text||''))+'"></span>';
+  }).join('');
+  var chips='<span class="mft h" style="color:'+cols.h+'">'+imgT(ids.h)+esc(ab(ids.h))+'</span>'+
+    '<span class="mft a" style="color:'+cols.a+'">'+imgT(ids.a)+esc(ab(ids.a))+'</span>';
+  var labs=[[0,1200,'1st'],[1200,2400,'2nd'],[2400,3600,'3rd'],[3600,Math.max(endT,3900),gcType()===3?'OT':'OT/SO']]
+    .filter(function(z){ return z[0]<endT-45; }).map(function(z){
+      return '<span class="mfp" style="left:'+((z[0]+Math.min(endT,z[1]))/2/endT*100).toFixed(2)+'%">'+z[2]+'</span>'; }).join('');
+  var now=m[m.length-1], rel=Math.abs(now)/maxA, who=now>0?ids.h:ids.a, live=gcState()==='in';
+  var lead=rel<0.15?'Even run of play':(nick(who)+(rel>0.55?' all over them':' with the better of it'));
+  var note='<b>'+esc(lead)+'</b>'+(live?' right now.':' by the end.')+' Attempts '+esc(ab(ids.a))+' '+ca+', '+esc(ab(ids.h))+' '+ch+'.';
+  var body='<div class="mflow"><div class="mfw">'+svg+chips+dots+'</div><div class="mfx">'+labs+'</div><div class="mfnote">'+note+'</div></div>';
+  return card('Game flow',body,'','<span class="gn">who has the run of play</span>');
 }
 function tstat(side,name){ var t=((S.gc.sum||{}).boxscore||{}).teams||[]; var tt=t.filter(function(x){ return x.homeAway===side; })[0]; if(!tt) return null; var s=(tt.statistics||[]).filter(function(x){ return x.name===name; })[0]; return s?s.displayValue:null; }
 function cmpRow(label,a,h,fmt,lowGood){
@@ -2475,10 +2528,10 @@ function gcRender(){
       '<div class="gc-col gc-mid">'+preGoalies()+preStake()+'</div>'+
       '<div class="gc-col gc-side">'+preWin()+preSeries()+preForm()+preInfo()+gcInj()+'</div></div>';
   } else {
-    el.innerHTML=gcTop(st==='in'?'Game Center':'Game Breakdown')+gcHeader()+'<div class="gc-grid">'+
+    el.innerHTML=gcTop(st==='in'?'Game Center':'Game Breakdown')+gcHeader()+gcFlow()+'<div class="gc-grid">'+
       '<div class="gc-col gc-box">'+gcBox()+gcPBP()+'</div>'+
       '<div class="gc-col gc-mid">'+gcRink()+gcScoring()+gcPens()+'</div>'+
-      '<div class="gc-col gc-side">'+gcStars()+gcLine()+gcFlow()+gcCompare()+gcInj()+'</div></div>';
+      '<div class="gc-col gc-side">'+gcStars()+gcLine()+gcCompare()+gcInj()+'</div></div>';
   }
   if(Math.abs(window.scrollY-keep)>2) window.scrollTo(0,keep);
 }
