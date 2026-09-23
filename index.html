@@ -1343,7 +1343,7 @@ a.hmt:hover{border-color:#39404f}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v17';
+var VERSION='v18';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -2341,7 +2341,7 @@ function gcFlow(){
   var lead=rel<0.15?'Even run of play':(nick(who)+(rel>0.55?' all over them':' with the better of it'));
   var note='<b>'+esc(lead)+'</b>'+(live?' right now.':' by the end.')+' Attempts '+esc(ab(ids.a))+' '+ca+', '+esc(ab(ids.h))+' '+ch+'.';
   var body='<div class="mflow"><div class="mfw">'+svg+chips+dots+'</div><div class="mfx">'+labs+'</div><div class="mfnote">'+note+'</div></div>';
-  return card('Game flow',body,'','<span class="gn">who has the run of play</span>');
+  return card('Game flow',body,'');   /* v18: no caption on the game flow */
 }
 function tstat(side,name){ var t=((S.gc.sum||{}).boxscore||{}).teams||[]; var tt=t.filter(function(x){ return x.homeAway===side; })[0]; if(!tt) return null; var s=(tt.statistics||[]).filter(function(x){ return x.name===name; })[0]; return s?s.displayValue:null; }
 function cmpRow(label,a,h,fmt,lowGood){
