@@ -1061,8 +1061,8 @@ table.rs td.W{color:var(--good); font-weight:700} table.rs td.L{color:var(--bad)
 .pmh .pmx a.tmx{text-decoration:none}
 .plg{display:flex; flex-wrap:wrap; gap:6px 16px; font-size:13px; color:var(--mute)}
 .plg span i{font-style:normal; font-size:9.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); margin-right:5px}
-.pn{cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px; text-decoration-color:var(--dim)}
-.pn:hover{color:#7ee2a8; text-decoration-color:#7ee2a8}
+.pn{cursor:pointer; color:#bfe3d0}   /* v19: no underline, a quiet green tint says clickable */
+.pn:hover{color:#7ee2a8}
 .il div[data-plid],.decs span[data-plid]{cursor:pointer}
 .il div[data-plid]:hover b,.decs span[data-plid]:hover b{color:#7ee2a8}
 @media (max-width:640px){ .pmh .pmx{width:100%; justify-content:flex-end} }
@@ -1343,7 +1343,7 @@ a.hmt:hover{border-color:#39404f}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v18';
+var VERSION='v19';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -3457,13 +3457,22 @@ function plInGame(id){
   var sc=st==='pre'?ab(ids.a)+' at '+ab(ids.h):ab(ids.a)+' '+(A.score!=null?A.score:'')+' · '+ab(ids.h)+' '+(H.score!=null?H.score:'');
   return '<div class="tmc"><h3>'+(st==='in'?'In this game':'In the game')+'<small>'+esc(sc)+'</small></h3><div class="plg">'+out+'</div></div>';
 }
+function plFold(str){ return String(str==null?'':str).normalize('NFD').replace(/[̀-ͯ]/g,''); }   // v19: accent-blind matching (Bäck, Rémi)
 function plNameMap(){
-  var sum=S.gc&&S.gc.sum, bp=sum&&sum.boxscore&&sum.boxscore.players, key=(S.gc&&S.gc.id)+':'+(bp?bp.length:0)+':'+(bp&&bp[0]&&bp[0].statistics&&bp[0].statistics[0]&&bp[0].statistics[0].athletes?bp[0].statistics[0].athletes.length:0);
+  var sum=S.gc&&S.gc.sum, bp=sum&&sum.boxscore&&sum.boxscore.players, pl=(sum&&sum.plays)||[];
+  var key=(S.gc&&S.gc.id)+':'+(bp?bp.length:0)+':'+(bp&&bp[0]&&bp[0].statistics&&bp[0].statistics[0]&&bp[0].statistics[0].athletes?bp[0].statistics[0].athletes.length:0)+':'+pl.length;
   if(S.pl.nmap&&S.pl.nmap.key===key) return S.pl.nmap;
   var m={}, amb={};
-  function add(k,id,nm){ if(!k) return; if(m[k]&&m[k].id!==id) amb[k]=1; else m[k]={id:id,nm:nm}; }
-  (bp||[]).forEach(function(P){ (P.statistics||[]).forEach(function(st){ (st.athletes||[]).forEach(function(a){ var A=a.athlete||{}; if(!A.id) return; var id=String(A.id), full=A.displayName||'', sh=A.shortName||'';
-    add(full,id,full); add(sh,id,full); var parts=full.split(' '); if(parts.length>=2){ add(parts[0][0]+'. '+parts.slice(1).join(' '),id,full); add(parts[0][0]+'.'+parts.slice(1).join(' '),id,full); } }); }); });
+  function add(k,id,nm){ k=plFold(k); if(!k) return; if(m[k]&&m[k].id!==id) amb[k]=1; else m[k]={id:id,nm:nm}; }
+  function learn(A){ if(!A||!A.id) return; var id=String(A.id), full=A.displayName||A.fullName||A.name||'', sh=A.shortName||A.short||'';
+    if(!full) return; add(full,id,full); add(sh,id,full); var parts=full.split(' '); if(parts.length>=2){ add(parts[0][0]+'. '+parts.slice(1).join(' '),id,full); add(parts[0][0]+'.'+parts.slice(1).join(' '),id,full); } }
+  // v19: every athlete the summary knows, not just the box score: goalies and quiet skaters were slipping through
+  (bp||[]).forEach(function(P){ (P.statistics||[]).forEach(function(st){ (st.athletes||[]).forEach(function(a){ learn(a.athlete); }); }); });
+  (sum&&sum.rosters||[]).forEach(function(R){ (R.roster||[]).forEach(function(r){ learn(r.athlete||r); }); });
+  pl.forEach(function(p){ (p.participants||[]).forEach(function(x){ learn(x.athlete); }); });
+  var comp=((sum&&sum.header&&sum.header.competitions)||[])[0]||{}; (((comp.status||{}).featuredAthletes)||[]).forEach(function(x){ learn(x.athlete); });
+  (sum&&sum.injuries||[]).forEach(function(t){ (t.injuries||[]).forEach(function(i){ learn(i.athlete); }); });
+  Object.keys(S.sn.roster||{}).forEach(function(k){ var r=S.sn.roster[k]; if(r&&r.sk) r.sk.concat(r.g).forEach(function(p){ learn({id:p.id,displayName:p.name,shortName:p.short}); }); });
   Object.keys(amb).forEach(function(k){ delete m[k]; });
   var keys=Object.keys(m).filter(function(k){return k.length>3}).sort(function(a,b){return b.length-a.length});
   S.pl.nmap={key:key, m:m, re:keys.length?new RegExp("(^|[^A-Za-z.'])("+keys.map(function(k){return k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}).join('|')+")(?![A-Za-z'])",'g'):null};
@@ -3471,7 +3480,15 @@ function plNameMap(){
 }
 function linkNames(html){
   var nm=plNameMap(); if(!nm.re) return html;
-  return html.replace(nm.re,function(all,pre,k){ var hit=nm.m[k]; return hit?pre+'<span class="pn" data-plid="'+hit.id+'" data-pname="'+esc(hit.nm)+'" title="Player card">'+k+'</span>':all; });
+  // v19: match on the accent-stripped text, splice the original characters back in
+  var src=String(html==null?'':html), fold='', map=[];
+  for(var i=0;i<src.length;i++){ var f=src[i].normalize('NFD').replace(/[̀-ͯ]/g,''); if(!f&&/[̀-ͯ]/.test(src[i])) continue; fold+=f; for(var q=0;q<f.length;q++) map.push(i); }
+  map.push(src.length);
+  var out='', last=0, re=new RegExp(nm.re.source,'g'), mt;
+  while((mt=re.exec(fold))){ var hit=nm.m[mt[2]]; if(!hit) continue;
+    var a=map[mt.index+mt[1].length], b=map[mt.index+mt[0].length];
+    out+=src.slice(last,a)+'<span class="pn" data-plid="'+hit.id+'" data-pname="'+esc(hit.nm)+'" title="Player card">'+src.slice(a,b)+'</span>'; last=b; }
+  return out+src.slice(last);
 }
 function closePlayer(){ S.pl.id=null; $('pmod').hidden=true; }
 function loadGL(id,y){
