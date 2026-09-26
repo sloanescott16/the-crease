@@ -1343,7 +1343,7 @@ a.hmt:hover{border-color:#39404f}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v20';
+var VERSION='v21';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -3262,7 +3262,7 @@ function snChart(){
   for(var v=0;v<=maxY;v+=20) g+='<line class="gl" x1="'+L+'" x2="'+(W-Rr)+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text class="ax" x="'+(L-5)+'" y="'+(Y(v)+3)+'" text-anchor="end">'+v+'</text>';
   var step=maxX>40?20:10;
   for(var n=0;n<=maxX;n+=step) g+='<text class="ax" x="'+X(n)+'" y="'+(H-8)+'" text-anchor="middle">'+n+'</text>';
-  g+='<text class="ax" x="'+(W-Rr+12)+'" y="'+(H-8)+'" text-anchor="start">GP</text>';   /* v20: in the margin, clear of the last tick */
+  g+='<text class="ax" x="'+(W-Rr+12)+'" y="'+(H-8)+'" text-anchor="start">GP</text>';   /* v21: in the margin, clear of the last tick */
   g+='<line class="pl" x1="'+X(0)+'" y1="'+Y(0)+'" x2="'+X(maxX)+'" y2="'+Y(lineP*maxX/82)+'"/><text class="ax" x="'+(X(maxX)+3)+'" y="'+(Y(lineP*maxX/82)+3)+'">cut</text>';
   var cols={}, paths='', ends=[];
   want.sort(function(a,b){ return a===FAV?1:b===FAV?-1:0; }).forEach(function(id){
@@ -3274,7 +3274,7 @@ function snChart(){
     var lx=X(a.length-1), ly=Y(a[a.length-1]);
     ends.push({x:lx+3, y:ly+3, c:c, t:ab(id)});
   });
-  /* v20: teams on the same points land on the same line, so nudge their labels a full line apart */
+  /* v21: teams on the same points land on the same line, so nudge their labels a full line apart */
   ends.sort(function(a,b){ return a.y-b.y; });
   for(var ei=1;ei<ends.length;ei++) if(ends[ei].y-ends[ei-1].y<11) ends[ei].y=ends[ei-1].y+11;
   var edrop=ends.length?ends[ends.length-1].y-(H-B):0; if(edrop>0) ends.forEach(function(e){ e.y-=edrop; });
@@ -3813,7 +3813,7 @@ boot();
   #gc .gch.stuck{padding:5px 10px} #gc .gch.stuck .gct>div:nth-child(2){display:none}
   #gc .gch.stuck .gct img{width:26px; height:26px} #gc .gch.stuck .gct .ts{font-size:30px}
 }
-/* v20: the score banner scales with its own width (container query), capped at the old sizes, so the scores never slide over the
+/* v21: the score banner scales with its own width (container query), capped at the old sizes, so the scores never slide over the
    middle block on a laptop or half a monitor; names give way with an ellipsis only as a last resort. Same standard as Pennant Chase v58. */
 .gch{container-type:inline-size}
 .gct>div:nth-child(2){min-width:0}
@@ -3863,6 +3863,7 @@ boot();
 /* What if table: on a narrow screen it drops the pace column and lets the explanation wrap, instead of scrolling sideways */
 .tool{container-type:inline-size}
 @container (max-width:540px){ .wt{min-width:0} .wt th:nth-child(3),.wt td:nth-child(3){display:none} .wt .say{white-space:normal} }
+@container (max-width:60px){ .calg .dy .rs{font-size:9.5px;white-space:normal;overflow:visible;line-height:1.1} }
 /* goalie tiles: the record gets a wider tile and shrinks with the card, so 186-136-43 stays inside it */
 .pgrid{container-type:inline-size}
 .pgrid:has(>.wide){grid-template-columns:minmax(0,.85fr) minmax(0,1.6fr) minmax(0,.85fr) minmax(0,.85fr)}
