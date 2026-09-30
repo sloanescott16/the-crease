@@ -1386,7 +1386,7 @@ html{color-scheme:dark}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v25';
+var VERSION='v26';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -2907,12 +2907,13 @@ function wpP0(aId,hId){
 }
 function pois(lam,k){ if(lam<=0) return k===0?1:0; var t=Math.exp(-lam); for(var i=1;i<=k;i++) t*=lam/i; return t; }
 /* home win chance with `mar` goals in hand and `left` seconds of regulation to play */
-function wpAt(mar,left,p0,shootout){
+function wpAt(mar,left,p0,shootout,ex){
   var ot=0.5+(p0-0.5)*0.35;                       /* three on three then a shootout is close to a coin flip */
   if(shootout) return mar>0?1:mar<0?0:ot;
   if(left<=0) return mar>0?1:mar<0?0:ot;
   var adv=(p0-0.5)*1.1, base=3.05*left/3600;
   var lh=base*(1+adv), la=base*(1-adv);
+  if(ex){ lh=Math.max(0.001,lh+(ex.h||0)*(1+adv)); la=Math.max(0.001,la+(ex.a||0)*(1-adv)); }   /* v26: pressure and power plays */
   if(left<150&&mar!==0&&Math.abs(mar)<=2){        /* the net comes out: the chasing team presses, the leader gets the empty one */
     if(mar>0){ la*=1.9; lh*=2.1; } else { lh*=1.9; la*=2.1; }
   }
@@ -2936,29 +2937,114 @@ function liveNow(per,clock,lastT){
   });
   return Math.min(end,best===null?lastT:best);
 }
-/* one point per play, so the line follows the game rather than the goals alone */
+/* v26: the line glides instead of stepping. Between goals it now moves with the run of play and the
+   manpower as well as the clock: the Game flow events (shots, misses, blocks, takeaways, penalties drawn)
+   feed a causal pressure reading that decays over two minutes, and the side pressing gets a bigger share
+   of the next seven minutes' goals; a power play gives its side 2.3x the even-strength rate and the short
+   side 0.35x for the time left on the minor. Hover keeps one point per play (pts); the chart is drawn from
+   `curve`, the same model sampled every 10 seconds of game time as well, joined with a monotone spline. */
+function wpPens(){
+  var ids=gcIds(), ps=plays(), act={}; act[ids.a]=[]; act[ids.h]=[];
+  ps.forEach(function(p){
+    if(!isPen(p)||!p.period||!p.clock) return;
+    var ty=(p.type.penaltyType||'').toLowerCase(), mins=+p.type.penaltyMinutes||0;
+    if(ty.indexOf('misconduct')>=0||mins>=10||!mins) return;
+    var tid=String((p.team||{}).id||''); if(!act[tid]) return;
+    var st=gsec(p.period.number,p.clock.displayValue);
+    act[tid].push({st:st,end:st+mins*60,minor:mins===2});
+  });
+  ps.forEach(function(p){
+    if(!p.scoringPlay||isSO(p)||!p.period) return;
+    var sc=String((p.team||{}).id||''), other=sc===ids.h?ids.a:ids.h, t=gsec(p.period.number,p.clock.displayValue);
+    var on=function(id){ return (act[id]||[]).filter(function(x){ return x.st<t&&x.end>t; }); };
+    var box=on(other).filter(function(x){ return x.minor; }).sort(function(a,b){ return a.st-b.st; })[0];
+    if(box&&on(sc).length<on(other).length) box.end=t;
+  });
+  return act;
+}
+function wpCtx(){
+  var ids=gcIds(), ev=flowEvents(), act=wpPens(), R=3.05/3600;
+  function lean(t){                                  /* +1 home pressing hard, -1 away */
+    var s=0;
+    for(var i=0;i<ev.length;i++){ var e=ev[i]; if(e.t>t) break; if(e.k==='G') continue; s+=e.w*Math.exp(-(t-e.t)/120); }
+    return Math.tanh(s/10);
+  }
+  function pp(t){
+    var nh=act[ids.h].filter(function(x){ return x.st<=t&&x.end>t; }), na=act[ids.a].filter(function(x){ return x.st<=t&&x.end>t; });
+    if(nh.length===na.length) return null;
+    var box=nh.length>na.length?nh:na;
+    return {side:nh.length>na.length?'a':'h', left:Math.min.apply(null,box.map(function(x){ return x.end-t; }))};
+  }
+  function ex(t){
+    var left=Math.max(0,3600-t); if(left<=0) return null;
+    var o={h:0,a:0}, l=lean(t), w=Math.min(left,420);
+    if(l>0){ o.h+=R*w*1.2*l; o.a-=R*w*0.45*l; } else if(l<0){ o.a+=R*w*1.2*-l; o.h-=R*w*0.45*-l; }
+    var q=pp(t);
+    if(q){ var d=Math.min(left,q.left), up=q.side, dn=up==='h'?'a':'h'; o[up]+=R*d*1.3; o[dn]-=R*d*0.65; }
+    return o;
+  }
+  return {ex:ex};
+}
 function wpSeries(){
-  var ids=gcIds(), st=gcState(), p0=wpP0(ids.a,ids.h);
+  var ids=gcIds(), st=gcState(), p0=wpP0(ids.a,ids.h), C=wpCtx();
   var ps=plays().filter(function(p){ return p.period&&p.clock; });
-  var pts=[{t:0,v:p0,p:null}];
+  var V=function(mar,t){ return wpAt(mar,Math.max(0,3600-t),p0,false,C.ex(t)); };
+  var pts=[{t:0,v:p0,p:null}], marks=[{t:0,mar:0}];
   var mar=0, so=false;
   ps.forEach(function(p){
     if(isSO(p)){ so=true; return; }
     var t=gsec(p.period.number,p.clock.displayValue);
     if(p.homeScore!=null&&p.awayScore!=null) mar=(+p.homeScore||0)-(+p.awayScore||0);
-    pts.push({t:t, v:wpAt(mar,Math.max(0,3600-t),p0), p:p});
+    pts.push({t:t, v:V(mar,t), p:p});
+    marks.push({t:t,mar:mar});
   });
-  var c=gcComp(), sstat=c.status||{};
+  var c=gcComp(), sstat=c.status||{}, endT=pts[pts.length-1].t, finV=null;
   if(st==='in'){
-    var now=liveNow(sstat.period||1,sstat.displayClock||'0:00',pts[pts.length-1].t);   /* v20: either clock direction */
-    if(now>pts[pts.length-1].t) pts.push({t:now,v:wpAt(mar,Math.max(0,3600-now),p0),p:null});
+    var now=liveNow(sstat.period||1,sstat.displayClock||'0:00',endT);   /* v20: either clock direction */
+    if(now>endT){ pts.push({t:now,v:V(mar,now),p:null}); endT=now; }
   } else if(st==='post'){
     var A=gcSide('away'), H=gcSide('home');
     var fin=(+(H.score||0))-(+(A.score||0));
-    pts.push({t:Math.max(3600,pts[pts.length-1].t),v:fin>0?1:fin<0?0:pts[pts.length-1].v,p:null});
+    finV=fin>0?1:fin<0?0:pts[pts.length-1].v;
+    pts.push({t:Math.max(3600,endT),v:finV,p:null});
   }
   if(so) pts[pts.length-1].v=wpAt(mar,0,p0,true);
-  return {pts:pts, p0:p0, ids:ids, so:so};
+  /* the drawn curve: every play plus a sample every 10 s, each at the margin standing at that moment */
+  var curve=pts.map(function(q,i){ return {t:q.t,v:q.v,i:i,m:i?null:0}; }), k=0;
+  for(var t=10;t<endT;t+=10){
+    while(k+1<marks.length&&marks[k+1].t<=t) k++;
+    curve.push({t:t,v:V(marks[k].mar,t),m:marks[k].mar});
+  }
+  var mi=0; pts.forEach(function(q,i){ if(i&&q.p) mi++; curve[i].m=q.p?marks[mi].mar:(i?mar:0); });
+  curve.sort(function(a,b){ return a.t-b.t||(a.i==null?-1:1); });
+  var cv=[];                                           /* one value per moment: the last word at that second */
+  curve.forEach(function(q){ if(cv.length&&Math.abs(cv[cv.length-1].t-q.t)<0.5){ var i0=cv[cv.length-1].i; cv[cv.length-1]=q; if(q.i==null) q.i=i0; } else cv.push(q); });
+  /* smooth the run of play (sigma 60 s) inside each stretch at one score, so goals stay sharp and the rest rolls */
+  var sm=cv.map(function(q,a){
+    if(q.t===0) return q.v;
+    var sw=0, sv=0;
+    for(var b=a;b>=0&&cv[b].m===q.m&&q.t-cv[b].t<=180;b--){ if(cv[b].t===0) break; var w=Math.exp(-Math.pow(q.t-cv[b].t,2)/7200); sw+=w; sv+=w*cv[b].v; }
+    for(b=a+1;b<cv.length&&cv[b].m===q.m&&cv[b].t-q.t<=180;b++){ var w2=Math.exp(-Math.pow(cv[b].t-q.t,2)/7200); sw+=w2; sv+=w2*cv[b].v; }
+    return sw?sv/sw:q.v;
+  });
+  cv.forEach(function(q,a){ q.v=sm[a]; });
+  var ci=0; pts.forEach(function(q){ while(ci+1<cv.length&&cv[ci+1].t<=q.t+0.5) ci++; if(Math.abs(cv[ci].t-q.t)<0.5) q.v=cv[ci].v; });
+  if(st==='post'&&finV!=null){ pts[pts.length-1].v=finV; cv[cv.length-1].v=finV; }
+  if(so){ pts[pts.length-1].v=wpAt(mar,0,p0,true); cv[cv.length-1].v=pts[pts.length-1].v; }
+  return {pts:pts, curve:cv, p0:p0, ids:ids, so:so};
+}
+/* monotone cubic through x-sorted points (Fritsch-Carlson), so the line never overshoots between samples */
+function monoPath(X,Y){
+  var n=X.length; if(n<2) return n?'M'+X[0].toFixed(1)+','+Y[0].toFixed(1):'';
+  var d=[], m=[], i;
+  for(i=0;i<n-1;i++){ var dx=X[i+1]-X[i]; d.push(dx>0?(Y[i+1]-Y[i])/dx:0); }
+  m[0]=d[0]; m[n-1]=d[n-2];
+  for(i=1;i<n-1;i++) m[i]=d[i-1]*d[i]<=0?0:(d[i-1]+d[i])/2;
+  for(i=0;i<n-1;i++){ if(d[i]===0){ m[i]=m[i+1]=0; continue; } var a=m[i]/d[i], b=m[i+1]/d[i], h=a*a+b*b; if(h>9){ var tt=3/Math.sqrt(h); m[i]=tt*a*d[i]; m[i+1]=tt*b*d[i]; } }
+  var s='M'+X[0].toFixed(1)+','+Y[0].toFixed(1);
+  for(i=0;i<n-1;i++){ var h3=(X[i+1]-X[i])/3;
+    s+=' C'+(X[i]+h3).toFixed(1)+','+(Y[i]+m[i]*h3).toFixed(1)+' '+(X[i+1]-h3).toFixed(1)+','+(Y[i+1]-m[i+1]*h3).toFixed(1)+' '+X[i+1].toFixed(1)+','+Y[i+1].toFixed(1); }
+  return s;
 }
 function gcWP(){
   var K=GX[gxKey()]; K.P=null;
@@ -2977,15 +3063,18 @@ function gcWP(){
   function X(u){ return pl+u/maxP*iw; }
   function Y(q){ return pt+(1-q)*ih; }
   var xs=tr.map(function(z){ return X(z.u); }), vs=pts.map(v), ys=vs.map(Y), mid=Y(0.5), n=pts.length;
-  var d='M'+pts.map(function(q,i){ return xs[i].toFixed(1)+','+ys[i].toFixed(1); }).join(' L');
-  var area=d+' L'+xs[n-1].toFixed(1)+','+mid.toFixed(1)+' L'+xs[0].toFixed(1)+','+mid.toFixed(1)+' Z';
+  /* v26: the line is drawn from the dense curve with a monotone spline; hover keeps the per-play points */
+  var cvs=S1.curve||pts, cn=cvs.length, cX=cvs.map(function(q,i){ return X(ax.fin&&i===cn-1?maxP:Math.min(maxP,gcU(q.t))); }), cV=cvs.map(v), cY=cV.map(Y);
+  for(var z=1;z<cn;z++) if(cX[z]<cX[z-1]) cX[z]=cX[z-1];
+  var d=monoPath(cX,cY);
+  var area=d+' L'+cX[cn-1].toFixed(1)+','+mid.toFixed(1)+' L'+cX[0].toFixed(1)+','+mid.toFixed(1)+' Z';
   var grid='', lab='';
   [0.25,0.75].forEach(function(q){ grid+='<line class="wq" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(q).toFixed(1)+'" y2="'+Y(q).toFixed(1)+'"/>'; });
   for(var k=1;k<maxP;k++) grid+='<line class="gl" x1="'+X(k).toFixed(1)+'" y1="'+pt+'" x2="'+X(k).toFixed(1)+'" y2="'+(pB+13)+'"/>';
   for(k=1;k<=maxP;k++) lab+='<text class="ax'+(!ax.fin&&k>played?' fut':'')+'" x="'+X(k-0.5).toFixed(1)+'" y="'+(H-9)+'" text-anchor="middle">'+gcPerLab(k,ax.so)+'</text>';
   var heat='';
-  for(var j=0;j<n-1;j++){ var q0=vs[j], w0=Math.max(0.6,xs[j+1]-xs[j]);
-    heat+='<rect x="'+xs[j].toFixed(1)+'" y="'+(pB+5)+'" width="'+w0.toFixed(1)+'" height="8" fill="'+(q0>=0.5?col:col2)+'" fill-opacity="'+(Math.min(1,Math.abs(q0-0.5)/0.35)*0.9+0.08).toFixed(2)+'"/>'; }
+  for(var j=0;j<cn-1;j++){ var q0=cV[j], w0=Math.max(0.6,cX[j+1]-cX[j]);
+    heat+='<rect x="'+cX[j].toFixed(1)+'" y="'+(pB+5)+'" width="'+w0.toFixed(1)+'" height="8" fill="'+(q0>=0.5?col:col2)+'" fill-opacity="'+(Math.min(1,Math.abs(q0-0.5)/0.35)*0.9+0.08).toFixed(2)+'"/>'; }
   var goals='';
   pts.forEach(function(q,i){ if(!q.p||!q.p.scoringPlay||isSO(q.p)) return;
     var gc=String((q.p.team||{}).id)===String(up)?col:col2;
