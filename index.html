@@ -1213,6 +1213,26 @@ a.hmt:hover{border-color:#39404f}
   .hmhero{padding:10px 11px 12px; border-radius:11px}
   .hmh .hmgo{margin-left:0; width:100%}
 }
+/* v24: win probability, Command Center's panel */
+.wph{display:flex; align-items:center; gap:8px; margin-bottom:6px}
+.wph .s{display:flex; align-items:center; gap:7px; min-width:0}
+.wph .s.h{margin-left:auto}
+.wph img{width:24px; height:24px; object-fit:contain; flex:none}
+.wph b{font-family:var(--display); font-size:14px; letter-spacing:.04em; color:var(--ink)}
+.wph i{font-style:normal; font-family:var(--display); font-weight:700; font-size:34px; line-height:1}
+.wph small{flex:1; text-align:center; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim)}
+.wpbar{display:flex; height:5px; border-radius:3px; overflow:hidden; gap:2px; margin-bottom:10px}
+.wpbar i{display:block; height:100%}
+.wpw .wbg{fill:#1b2431; fill-opacity:.35}
+.wpw .wq{stroke:#26303f; stroke-dasharray:3 4}
+.wpw .mid{stroke:#3c4a5e; stroke-dasharray:none}
+.wpw .ax{fill:#7f8ba0; font:700 17px var(--body); letter-spacing:.04em}
+.wpw .ev{fill:#7f8ba0; font:700 14px var(--body); letter-spacing:.12em}
+.wpw .gd{stroke:#0b0e14; stroke-width:1.5}
+.wpw .wend{stroke:#11141a; stroke-width:2}
+.wpw .wlg{position:absolute; left:0; width:4.3333%; max-width:18px; transform:translateY(-50%); pointer-events:none}
+.wpw .wlg img{display:block; width:100%; height:auto; aspect-ratio:1; object-fit:contain}
+.wpx{top:4.1667%; bottom:19.1667%}
 /* v23: dark scrollbars (the shot list and play by play showed a white native bar) */
 html{color-scheme:dark}
 *{scrollbar-width:thin; scrollbar-color:#2f3747 transparent}
@@ -1366,7 +1386,7 @@ html{color-scheme:dark}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v23';
+var VERSION='v24';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -1440,7 +1460,10 @@ function pad16(n){ var s=n.toString(16); return s.length<2?'0'+s:s; }
 /* colours for a pair: the Stars keep their green, the other side steers clear of it */
 function pairCols(aId,hId){
   var G='#1fa860';
-  function base(id){ var m=S.tm[id]||{}; return id===FAV?G:lift(m.color||'#8b94a5'); }
+  function sat(c){ var x=hex2(c); return Math.max(x[0],x[1],x[2])-Math.min(x[0],x[1],x[2]); }
+  function base(id){ var m=S.tm[id]||{}; if(id===FAV) return G; var c=m.color||'#8b94a5';
+    if(sat(c)<40 && m.alt && sat(m.alt)>=60) c=m.alt;   /* v24: a black or grey primary (Bruins, Kings) reads as disabled; use the alternate */
+    return lift(c); }
   var a=base(aId), h=base(hId);
   if(aId!==FAV && near(a,G)) a=lift((S.tm[aId]||{}).alt||'#c9ced8');
   if(hId!==FAV && near(h,G)) h=lift((S.tm[hId]||{}).alt||'#c9ced8');
@@ -2946,28 +2969,49 @@ function gcWP(){
   var cols=pairCols(ids.a,ids.h), col=up===ids.h?cols.h:cols.a, col2=up===ids.h?cols.a:cols.h;
   var v=function(q){ return flip?1-q.v:q.v; };
   /* v20: the same period axis as Game flow, laid out from puck drop */
-  var maxP=ax.maxP, played=Math.ceil(ax.endU-1e-6);
-  var W=600,H=150,pl=26,pr=8,pt=8,pb=15, iw=W-pl-pr, ih=H-pt-pb;
+  var maxP=ax.maxP, played=Math.ceil(ax.endU-1e-6), dn=up===ids.h?ids.a:ids.h;
+  /* v24: Command Center's panel: both sides of even coloured, gradient fills, logos on the 100% ends,
+     a momentum strip under the plot. pl/pr stay 26/8 of 600 so it still lines up with Game flow. */
+  var W=600,H=240,pl=26,pr=8,pt=10,pb=46, iw=W-pl-pr, ih=H-pt-pb, pB=pt+ih, key=gxKey();
   function X(u){ return pl+u/maxP*iw; }
   function Y(q){ return pt+(1-q)*ih; }
-  var xs=tr.map(function(z){ return X(z.u); }), vs=pts.map(v), ys=vs.map(Y);
-  var d=pts.map(function(q,i){ return (i?'L':'M')+xs[i].toFixed(1)+','+ys[i].toFixed(1); }).join(' ');
-  var area='M'+X(0).toFixed(1)+','+Y(0.5).toFixed(1)+'L'+pts.map(function(q,i){ return xs[i].toFixed(1)+','+ys[i].toFixed(1); }).join('L')+'L'+xs[xs.length-1].toFixed(1)+','+Y(0.5).toFixed(1)+'Z';
+  var xs=tr.map(function(z){ return X(z.u); }), vs=pts.map(v), ys=vs.map(Y), mid=Y(0.5), n=pts.length;
+  var d='M'+pts.map(function(q,i){ return xs[i].toFixed(1)+','+ys[i].toFixed(1); }).join(' L');
+  var area=d+' L'+xs[n-1].toFixed(1)+','+mid.toFixed(1)+' L'+xs[0].toFixed(1)+','+mid.toFixed(1)+' Z';
   var grid='', lab='';
-  for(var k=1;k<maxP;k++) grid+='<line class="gl" x1="'+X(k).toFixed(1)+'" y1="'+pt+'" x2="'+X(k).toFixed(1)+'" y2="'+(pt+ih)+'"/>';
-  for(k=1;k<=maxP;k++) lab+='<text class="ax'+(!ax.fin&&k>played?' fut':'')+'" x="'+X(k-0.5).toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle">'+gcPerLab(k,ax.so)+'</text>';
+  [0.25,0.75].forEach(function(q){ grid+='<line class="wq" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+Y(q).toFixed(1)+'" y2="'+Y(q).toFixed(1)+'"/>'; });
+  for(var k=1;k<maxP;k++) grid+='<line class="gl" x1="'+X(k).toFixed(1)+'" y1="'+pt+'" x2="'+X(k).toFixed(1)+'" y2="'+(pB+13)+'"/>';
+  for(k=1;k<=maxP;k++) lab+='<text class="ax'+(!ax.fin&&k>played?' fut':'')+'" x="'+X(k-0.5).toFixed(1)+'" y="'+(H-9)+'" text-anchor="middle">'+gcPerLab(k,ax.so)+'</text>';
+  var heat='';
+  for(var j=0;j<n-1;j++){ var q0=vs[j], w0=Math.max(0.6,xs[j+1]-xs[j]);
+    heat+='<rect x="'+xs[j].toFixed(1)+'" y="'+(pB+5)+'" width="'+w0.toFixed(1)+'" height="8" fill="'+(q0>=0.5?col:col2)+'" fill-opacity="'+(Math.min(1,Math.abs(q0-0.5)/0.35)*0.9+0.08).toFixed(2)+'"/>'; }
   var goals='';
   pts.forEach(function(q,i){ if(!q.p||!q.p.scoringPlay||isSO(q.p)) return;
-    goals+='<circle class="gd" cx="'+xs[i].toFixed(1)+'" cy="'+ys[i].toFixed(1)+'" r="3.4" fill="'+col+'"><title>'+esc(perName(q.p.period.number)+' '+q.p.clock.displayValue+' · '+(q.p.text||'Goal'))+'</title></circle>';
+    var gc=String((q.p.team||{}).id)===String(up)?col:col2;
+    goals+='<circle class="gd" cx="'+xs[i].toFixed(1)+'" cy="'+ys[i].toFixed(1)+'" r="6" fill="'+gc+'"><title>'+esc(perName(q.p.period.number)+' '+q.p.clock.displayValue+' · '+(q.p.text||'Goal'))+'</title></circle>';
   });
-  var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="height:150px">'+grid+lab+
-    '<path d="'+area+'" fill="'+col+'" opacity=".13"/>'+
-    '<line class="mid" x1="'+pl+'" y1="'+Y(0.5)+'" x2="'+(W-pr)+'" y2="'+Y(0.5)+'"/>'+
-    '<text class="ax" x="2" y="'+(pt+8)+'">100</text><text class="ax" x="6" y="'+(Y(0.5)+3)+'">50</text><text class="ax" x="10" y="'+(pt+ih)+'">0</text>'+
-    '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round"/>'+goals+'</svg>';
-  K.P={W:W, H:H, pl:pl, iw:iw, maxP:maxP, xs:xs, ys:ys, vs:vs, track:tr, up:up, dn:up===ids.h?ids.a:ids.h, cu:col, cd:col2, ids:ids};
-  var cur=v(pts[pts.length-1]);
-  var head='<div class="wpt">'+imgT(up)+'<span class="wv" style="color:'+col+'">'+Math.round(cur*100)+'%</span><span class="wl">'+esc(nick(up))+(st==='post'?' (final)':' to win')+'</span></div>';
+  var cur=v(pts[n-1]), live=st==='in';
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Win probability through the game"><defs>'+
+    '<clipPath id="wpT'+key+'"><rect x="0" y="0" width="'+W+'" height="'+mid.toFixed(1)+'"/></clipPath>'+
+    '<clipPath id="wpB'+key+'"><rect x="0" y="'+mid.toFixed(1)+'" width="'+W+'" height="'+(H-mid).toFixed(1)+'"/></clipPath>'+
+    '<linearGradient id="wpFU'+key+'" gradientUnits="userSpaceOnUse" x1="0" y1="'+pt+'" x2="0" y2="'+mid.toFixed(1)+'"><stop offset="0" stop-color="'+col+'" stop-opacity=".6"/><stop offset="1" stop-color="'+col+'" stop-opacity=".06"/></linearGradient>'+
+    '<linearGradient id="wpFD'+key+'" gradientUnits="userSpaceOnUse" x1="0" y1="'+mid.toFixed(1)+'" x2="0" y2="'+pB+'"><stop offset="0" stop-color="'+col2+'" stop-opacity=".06"/><stop offset="1" stop-color="'+col2+'" stop-opacity=".6"/></linearGradient></defs>'+
+    '<rect class="wbg" x="'+pl+'" y="'+pt+'" width="'+iw+'" height="'+ih+'"/>'+grid+lab+
+    '<path d="'+area+'" fill="url(#wpFU'+key+')" clip-path="url(#wpT'+key+')"/><path d="'+area+'" fill="url(#wpFD'+key+')" clip-path="url(#wpB'+key+')"/>'+
+    '<line class="mid" x1="'+pl+'" y1="'+mid.toFixed(1)+'" x2="'+(W-pr)+'" y2="'+mid.toFixed(1)+'"/>'+
+    '<text class="ev" x="'+(W-pr-4)+'" y="'+(mid-7).toFixed(1)+'" text-anchor="end">EVEN</text>'+
+    '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#wpT'+key+')"/>'+
+    '<path d="'+d+'" fill="none" stroke="'+col2+'" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#wpB'+key+')"/>'+
+    heat+goals+
+    (live?'<circle class="wend" cx="'+xs[n-1].toFixed(1)+'" cy="'+ys[n-1].toFixed(1)+'" r="6.5" fill="'+(cur>=0.5?col:col2)+'"/>':'')+'</svg>';
+  var ends='<span class="wlg" style="top:'+(Y(1)/H*100).toFixed(2)+'%">'+imgT(up)+'</span><span class="wlg" style="top:'+(Y(0)/H*100).toFixed(2)+'%">'+imgT(dn)+'</span>';
+  K.P={W:W, H:H, pl:pl, iw:iw, maxP:maxP, xs:xs, ys:ys, vs:vs, track:tr, up:up, dn:dn, cu:col, cd:col2, ids:ids};
+  /* head: away on the left, home on the right, like the score banner; a split bar under it */
+  var pA=Math.round((ids.a===up?cur:1-cur)*100), pH=100-pA, cA=ids.a===up?col:col2, cH=ids.h===up?col:col2;
+  var head='<div class="wph"><span class="s a" style="color:'+cA+'">'+imgT(ids.a)+'<b>'+esc(ab(ids.a))+'</b><i>'+pA+'%</i></span>'+
+    '<small>'+(st==='post'?'final':'to win')+'</small>'+
+    '<span class="s h" style="color:'+cH+'"><i>'+pH+'%</i><b>'+esc(ab(ids.h))+'</b>'+imgT(ids.h)+'</span></div>'+
+    '<div class="wpbar"><i style="width:'+pA+'%;background:'+cA+'"></i><i style="width:'+pH+'%;background:'+cH+'"></i></div>';
   var sw=[];
   for(var i=1;i<pts.length;i++) if(pts[i].p) sw.push({d:v(pts[i])-v(pts[i-1]), p:pts[i].p});
   sw.sort(function(a,b){ return Math.abs(b.d)-Math.abs(a.d); });
@@ -2975,7 +3019,7 @@ function gcWP(){
   var swings=sw.length?'<div class="swings"><h4>Biggest swings</h4>'+sw.map(function(x){
     return '<div><span class="wpa '+(x.d>0?'g':'r')+'">'+(x.d>0?'+':'')+Math.round(x.d*100)+'</span><span class="in">'+perName(x.p.period.number)+' '+esc(x.p.clock.displayValue)+'</span><span>'+esc(x.p.text||(x.p.type||{}).text||'')+'</span></div>';
   }).join('')+'</div>':'';
-  return card('Win probability',head+'<div class="wpw">'+svg+'<span class="wpx"></span><span class="wpdot"></span><div class="wptip"></div></div>'+swings+
+  return card('Win probability',head+'<div class="wpw">'+svg+ends+'<span class="wpx"></span><span class="wpdot"></span><div class="wptip"></div></div>'+swings+
     '<p class="wpn">Ours, not the NHL\'s: the score, the clock and how the two clubs have played, with goals arriving at about three a side per sixty. Empty nets counted late.</p>','o1',
     '<span class="gn">'+(st==='post'?'how it swung':'live')+'</span>');
 }
