@@ -871,6 +871,26 @@ svg.rink .dim{opacity:.18}
 .mfnote{font-size:11.5px; color:var(--mute); margin-top:4px}
 .mfnote b{color:var(--ink); font-weight:600}
 @media (max-width:760px){ .mfw{height:98px} .mft{font-size:12px} .mft img{width:15px;height:15px} }
+/* v20: Game flow sits on top of Win probability in the side column, both on one period axis laid out
+   from puck drop, and one hover drives both. .mfpl is inset to the Win probability plot area (x 26..592
+   of 600), and the period labels take the same margins, so both lines start and end on the same pixel. */
+.gcard.mfcard{overflow:visible; position:relative; z-index:3}
+.gcard.mfcard>.gh{border-radius:9px 9px 0 0}
+.mflow{position:relative}
+.mfw{touch-action:pan-y}
+.mfpl{position:absolute; top:0; bottom:0; left:4.3333%; right:1.3333%}
+.mfx{margin-left:4.3333%; margin-right:1.3333%}
+.mfp.fut,.wpw .ax.fut{opacity:.45}
+.mfnow{position:absolute; top:6px; bottom:6px; width:0; border-left:1px dashed rgba(255,255,255,.35); pointer-events:none}
+.mfcur,.wpx{position:absolute; width:0; border-left:1px solid rgba(255,255,255,.5); pointer-events:none; display:none; z-index:2}
+.mfcur{top:4px; bottom:4px} .wpx{top:5.3333%; bottom:10%}
+.mfhd,.wpdot{position:absolute; width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%; border:2px solid #fff; pointer-events:none; display:none; z-index:3}
+.wptip{width:max-content; max-width:250px; line-height:1.35; white-space:normal}
+.mftip{z-index:6}
+.wptip>b{display:block; font-family:var(--display); font-size:14px; letter-spacing:.03em; color:var(--ink)}
+.wptip .sc{display:block; font-weight:700; font-size:12px; margin:2px 0; color:var(--ink)}
+.wptip .sc i{font-style:normal; color:var(--dim); margin:0 4px}
+.wptip .pl{display:block; color:var(--mute); font-size:11px}
 .pbpr{display:grid; grid-template-columns:40px 18px minmax(0,1fr); gap:8px; align-items:baseline; padding:4px 0 4px 16px; font-size:12px; color:var(--mute); border-left:2px solid transparent}
 .pbpr img{width:15px; height:15px; object-fit:contain; align-self:center}
 .pbpr .t{color:var(--dim); font-size:10.5px; font-weight:600}
@@ -1193,6 +1213,9 @@ a.hmt:hover{border-color:#39404f}
   .hmhero{padding:10px 11px 12px; border-radius:11px}
   .hmh .hmgo{margin-left:0; width:100%}
 }
+/* v23: dark scrollbars (the shot list and play by play showed a white native bar) */
+html{color-scheme:dark}
+*{scrollbar-width:thin; scrollbar-color:#2f3747 transparent}
 </style>
 </head>
 <body>
@@ -1343,7 +1366,7 @@ a.hmt:hover{border-color:#39404f}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v22';
+var VERSION='v23';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -2298,30 +2321,62 @@ function flowEvents(){
   out.sort(function(a,b){ return a.t-b.t; });
   return out;
 }
+/* v20: Game flow sits on top of Win probability in the side column. Both are drawn on one period axis
+   laid out from puck drop (three periods always, each overtime adds one of its own width), share one
+   list of moments (gcAxis().track, one per play), and one hover drives both. Same treatment as
+   Command Center v85 and Pennant Chase v40 to v44. GX keeps what the hover needs, one slot for the
+   game center and one for Home (hmWith marks its borrowed S.gc with hm:true). */
+var GX={gc:{M:null,P:null,lh:null}, hm:{M:null,P:null,lh:null}};
+function gxKey(){ return S.gc&&S.gc.hm?'hm':'gc'; }
+/* seconds into the game to the period axis: period number minus one plus the share of it played */
+function gcU(t){ t=Math.max(0,t||0); var u=t<=3600?t/1200:3+(t-3600)/(gcType()===3?1200:300); return gcType()===3?u:Math.min(4,u); }
+function gcPerLab(q,so){ return q<=3?ord(q):gcType()===3?(q===4?'OT':(q-3)+'OT'):(so?'OT/SO':'OT'); }
+function gcAxis(){
+  var st=gcState(), per=+(((gcComp().status)||{}).period)||0, ser=wpSeries(), pts=ser.pts, last=0;
+  if(gcType()!==3&&per>4) per=4;                    /* a shootout adds no period to the axis */
+  pts.forEach(function(q){ var u=gcU(q.t); if(u>last) last=u; });
+  var maxP=Math.max(3,per,Math.ceil(last-1e-6)), fin=st==='post';
+  var endU=fin?maxP:Math.min(maxP,Math.max(last,0.02));
+  var A=gcSide('away'), H=gcSide('home'), sa=0, sh=0;
+  var track=pts.map(function(q,i){
+    var p=q.p, u=(fin&&!p&&i===pts.length-1)?maxP:Math.min(maxP,gcU(q.t));
+    if(p){ if(p.awayScore!=null) sa=+p.awayScore||0; if(p.homeScore!=null) sh=+p.homeScore||0; }
+    else if(i&&fin){ sa=+(A.score||0); sh=+(H.score||0); }
+    var lab=p?perName(p.period.number)+' '+(p.clock.displayValue||'')+' · '+String(p.text||(p.type||{}).text||''):i?(fin?'Final':'Now'):'Puck drop';
+    return {u:u, v:q.v, p:p, sc:[sa,sh], lab:lab};
+  });
+  return {maxP:maxP, endU:endU, live:st==='in', fin:fin, so:ser.so, ser:ser, track:track};
+}
+function gcScoreLine(ids,sc){ return '<span class="sc">'+esc(ab(ids.a))+' '+sc[0]+'<i>·</i>'+esc(ab(ids.h))+' '+sc[1]+'</span>'; }
+function gcPlayLine(q){ var t=q.lab; return '<span class="pl">'+esc(t.length>120?t.slice(0,117)+'...':t)+'</span>'; }
 function gcFlow(){
+  var K=GX[gxKey()]; K.M=null;
   var ids=gcIds(), cols=pairCols(ids.a,ids.h), ev=flowEvents();
   if(ev.length<3) return '';
   /* v12: the favourite rides above the line whenever they are playing, as on the other three sites */
   var up=(ids.h===FAV||ids.a===FAV)?FAV:ids.h, dn=up===ids.h?ids.a:ids.h;
   var cu=up===ids.h?cols.h:cols.a, cd=up===ids.h?cols.a:cols.h;
-  var ps=plays(), endT=Math.max(600,ptime(ps[ps.length-1]));
-  ev.forEach(function(e){ if(e.t>endT) endT=e.t; });   /* never let a marker fall off the end */
+  var ax=gcAxis(), maxP=ax.maxP, endU=ax.endU;
+  ev.forEach(function(e){ e.u=Math.min(maxP,gcU(e.t)); });
   var ca=0, ch=0; shots().forEach(function(p){ if(shooterTeam(p)===ids.h) ch++; else ca++; });
-  var W=1000, H=100, MID=50, AMP=43, N=340, SIG=78, step=endT/N, lo=0, m=[], maxA=0, i, k2;
+  /* the Gaussian window is still 78 seconds of a regulation period, now in periods */
+  var W=1000, H=100, MID=50, AMP=43, SIG=78/1200, N=Math.max(24,Math.round(420*endU/maxP)), step=endU/N, lo=0, m=[], maxA=0, i, k2;
   for(i=0;i<=N;i++){
     var t=i*step, v=0;
-    while(lo<ev.length&&ev[lo].t<t-3*SIG) lo++;
-    for(k2=lo;k2<ev.length&&ev[k2].t<t+3*SIG;k2++){ var d=(t-ev[k2].t)/SIG, sg=(ev[k2].w>0?ids.h:ids.a)===up?1:-1; v+=sg*Math.abs(ev[k2].w)*Math.exp(-d*d); }
+    while(lo<ev.length&&ev[lo].u<t-3*SIG) lo++;
+    for(k2=lo;k2<ev.length&&ev[k2].u<t+3*SIG;k2++){ var d=(t-ev[k2].u)/SIG, sg=(ev[k2].w>0?ids.h:ids.a)===up?1:-1; v+=sg*Math.abs(ev[k2].w)*Math.exp(-d*d); }
     m.push(v); if(Math.abs(v)>maxA) maxA=Math.abs(v);
   }
   maxA=Math.max(maxA,8);
-  function X(t){ return t/endT*W; }
+  function X(u){ return u/maxP*W; }
   function Y(v){ return MID-(v/maxA)*AMP; }
   var d=m.map(function(v,i){ return X(i*step).toFixed(2)+' '+Y(v).toFixed(2); });
-  var line='M'+d.join('L'), area='M0 '+MID+'L'+d.join('L')+'L'+W+' '+MID+'Z';
-  var g='';
-  [1200,2400,3600,4800].forEach(function(t){ if(t<endT-45){ var x=X(t).toFixed(1);
-    g+='<line class="mfdiv" x1="'+x+'" x2="'+x+'" y1="5" y2="'+(H-5)+'" vector-effect="non-scaling-stroke"/>'; } });
+  var line='M'+d.join('L'), area='M0 '+MID+'L'+d.join('L')+'L'+X(endU).toFixed(2)+' '+MID+'Z';
+  var g='', labs='', played=Math.ceil(endU-1e-6), q;
+  for(q=1;q<=maxP;q++){
+    if(q>1){ var x=X(q-1).toFixed(1); g+='<line class="mfdiv" x1="'+x+'" x2="'+x+'" y1="5" y2="'+(H-5)+'" vector-effect="non-scaling-stroke"/>'; }
+    labs+='<span class="mfp'+(!ax.fin&&q>played?' fut':'')+'" style="left:'+((q-0.5)/maxP*100).toFixed(2)+'%">'+gcPerLab(q,ax.so)+'</span>';
+  }
   var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">'+
     '<defs><clipPath id="mfT"><rect x="0" y="0" width="'+W+'" height="'+MID+'"/></clipPath>'+
     '<clipPath id="mfB"><rect x="0" y="'+MID+'" width="'+W+'" height="'+(H-MID)+'"/></clipPath></defs>'+g+
@@ -2329,20 +2384,93 @@ function gcFlow(){
     '<g clip-path="url(#mfB)"><path d="'+area+'" fill="'+cd+'" opacity=".4"/><path d="'+line+'" fill="none" stroke="'+cd+'" stroke-width="2" vector-effect="non-scaling-stroke"/></g>'+
     '<line class="mfax" x1="0" x2="'+W+'" y1="'+MID+'" y2="'+MID+'" vector-effect="non-scaling-stroke"/></svg>';
   var dots=ev.filter(function(e){ return e.k==='G'; }).map(function(e){
-    return '<span class="mfg" style="left:'+Math.min(99.5,Math.max(.5,e.t/endT*100)).toFixed(2)+'%;background:'+(e.team===up?cu:cd)+'" '+
+    return '<span class="mfg" style="left:'+Math.min(99.5,Math.max(.5,e.u/maxP*100)).toFixed(2)+'%;background:'+(e.team===up?cu:cd)+'" '+
       'title="'+esc(perName((e.p.period||{}).number||1)+' '+(((e.p.clock)||{}).displayValue||'')+' · '+(e.p.text||''))+'"></span>';
   }).join('');
+  var nowMark=ax.live?'<span class="mfnow" style="left:'+(endU/maxP*100).toFixed(2)+'%"></span>':'';
   var chips='<span class="mft h" style="color:'+cu+'">'+imgT(up)+esc(ab(up))+'</span>'+
     '<span class="mft a" style="color:'+cd+'">'+imgT(dn)+esc(ab(dn))+'</span>';
-  var labs=[[0,1200,'1st'],[1200,2400,'2nd'],[2400,3600,'3rd'],[3600,Math.max(endT,3900),gcType()===3?'OT':'OT/SO']]
-    .filter(function(z){ return z[0]<endT-45; }).map(function(z){
-      return '<span class="mfp" style="left:'+((z[0]+Math.min(endT,z[1]))/2/endT*100).toFixed(2)+'%">'+z[2]+'</span>'; }).join('');
-  var now=m[m.length-1], rel=Math.abs(now)/maxA, who=now>0?up:dn, live=gcState()==='in';
+  var now=m[m.length-1], rel=Math.abs(now)/maxA, who=now>0?up:dn, live=ax.live;
   var lead=rel<0.15?'Even run of play':(nick(who)+(rel>0.55?' all over them':' with the better of it'));
   var note='<b>'+esc(lead)+'</b>'+(live?' right now.':' by the end.')+' Attempts '+esc(ab(ids.a))+' '+ca+', '+esc(ab(ids.h))+' '+ch+'.';
-  var body='<div class="mflow"><div class="mfw">'+svg+chips+dots+'</div><div class="mfx">'+labs+'</div><div class="mfnote">'+note+'</div></div>';
-  return card('Game flow',body,'');   /* v18: no caption on the game flow */
+  K.M={maxP:maxP, endU:endU, step:step, m:m, maxA:maxA, up:up, dn:dn, cu:cu, cd:cd, ids:ids, MID:MID, AMP:AMP, H:H,
+    track:ax.track.filter(function(z){ return z.u<=endU+1e-9; })};
+  var body='<div class="mflow"><div class="mfw"><div class="mfpl">'+svg+nowMark+dots+'<span class="mfcur"></span><span class="mfhd"></span></div>'+chips+'</div>'+
+    '<div class="mfx">'+labs+'</div><div class="mfnote">'+note+'</div><div class="wptip mftip"></div></div>';
+  return card('Game flow',body,'o1 mfcard');   /* v18: no caption on the game flow */
 }
+/* v20: one hover for Game flow and Win probability. The chart under the pointer snaps to its nearest
+   moment and shows its tip; the other shows a guide line and a dot at the same moment. */
+function gxTipLeft(tip,cx,w){ var tw=tip.offsetWidth||200; return Math.max(0,Math.min(w-tw,cx-tw/2)); }
+function wpShow(root,K,u,withTip){
+  var P=K&&K.P, w=root&&root.querySelector('.wpw'), xl=w&&w.querySelector('.wpx'), dot=w&&w.querySelector('.wpdot'), tip=w&&w.querySelector('.wptip');
+  if(u==null||!P||!w||!xl||!dot){ if(xl) xl.style.display='none'; if(dot) dot.style.display='none'; if(tip) tip.style.display='none'; return null; }
+  var sx=P.pl+Math.min(P.maxP,Math.max(0,u))/P.maxP*P.iw, i=0;
+  P.xs.forEach(function(v,k){ if(Math.abs(v-sx)<Math.abs(P.xs[i]-sx)) i=k; });
+  var lx=(P.xs[i]/P.W*100).toFixed(3)+'%';
+  xl.style.display='block'; xl.style.left=lx;
+  dot.style.display='block'; dot.style.left=lx; dot.style.top=(P.ys[i]/P.H*100).toFixed(3)+'%'; dot.style.background=P.vs[i]>=0.5?P.cu:P.cd;
+  if(tip){
+    if(withTip){
+      var q=P.track[i], f=Math.round(P.vs[i]*100);
+      tip.innerHTML='<b><span style="color:'+P.cu+'">'+esc(ab(P.up))+' '+f+'%</span> · <span style="color:'+P.cd+'">'+esc(ab(P.dn))+' '+(100-f)+'%</span></b>'+
+        gcScoreLine(P.ids,q.sc)+gcPlayLine(q);
+      tip.style.display='block';
+      var r=w.getBoundingClientRect(), cx=P.xs[i]/P.W*r.width, cy=P.ys[i]/P.H*r.height, th=tip.offsetHeight||60;
+      tip.style.left=gxTipLeft(tip,cx,r.width)+'px';
+      tip.style.top=(cy-th-10>=0?cy-th-10:cy+12)+'px';
+    } else tip.style.display='none';
+  }
+  return P.track[i].u;
+}
+function mfShow(root,K,u,withTip){
+  var M=K&&K.M, fw=root&&root.querySelector('.mflow'), pl=fw&&fw.querySelector('.mfpl'), cur=pl&&pl.querySelector('.mfcur'), hd=pl&&pl.querySelector('.mfhd'), tip=fw&&fw.querySelector('.mftip');
+  if(u==null||!M||!pl||!cur||!hd||!M.track.length){ if(cur) cur.style.display='none'; if(hd) hd.style.display='none'; if(tip) tip.style.display='none'; return null; }
+  var best=M.track[0];
+  M.track.forEach(function(q){ if(Math.abs(q.u-u)<Math.abs(best.u-u)) best=q; });
+  var x=Math.min(best.u,M.endU), v=M.m[Math.min(M.m.length-1,Math.round(x/M.step))]||0, even=Math.abs(v)/M.maxA<0.15;
+  var lp=(x/M.maxP*100).toFixed(3)+'%';
+  cur.style.display='block'; cur.style.left=lp;
+  hd.style.display='block'; hd.style.left=lp; hd.style.top=((M.MID-v/M.maxA*M.AMP)/M.H*100).toFixed(2)+'%'; hd.style.background=v>=0?M.cu:M.cd;
+  if(tip){
+    if(withTip){
+      var lean=even?'Even':nick(v>0?M.up:M.dn)+' pushing';
+      tip.innerHTML='<b style="color:'+(even?'var(--ink)':v>0?M.cu:M.cd)+'">'+esc(lean)+'</b>'+gcScoreLine(M.ids,best.sc)+gcPlayLine(best);
+      tip.style.display='block';
+      var wr=fw.getBoundingClientRect(), pr=pl.getBoundingClientRect(), mw=pl.parentNode.getBoundingClientRect();
+      tip.style.left=gxTipLeft(tip,pr.left-wr.left+x/M.maxP*pr.width,wr.width)+'px';
+      tip.style.top=(mw.bottom-wr.top+4)+'px';
+    } else tip.style.display='none';
+  }
+  return best.u;
+}
+function gxRoot(k){ return $(k==='gc'?'gc':'secHome'); }
+function gxClear(except){
+  ['gc','hm'].forEach(function(k){ var K=GX[k]; if(k===except||!K.lh) return; K.lh=null; var r=gxRoot(k); if(r){ wpShow(r,K,null); mfShow(r,K,null); } });
+}
+function gcHover(ev){
+  var t=ev.target, c=t&&t.closest?t:null;
+  var wp=c&&c.closest('.wpw'), fw=c&&c.closest('.mfw');
+  var root=(wp||fw)?(wp||fw).closest('#gc,#secHome'):null, key=root?(root.id==='gc'?'gc':'hm'):null, K=key?GX[key]:null;
+  if(K&&wp&&K.P){
+    var r=wp.getBoundingClientRect(), sx=(ev.clientX-r.left)*K.P.W/r.width;
+    mfShow(root,K,wpShow(root,K,Math.max(0,(sx-K.P.pl)/K.P.iw*K.P.maxP),true),false);
+  } else if(K&&fw&&K.M){
+    var pr=fw.querySelector('.mfpl').getBoundingClientRect();
+    wpShow(root,K,mfShow(root,K,Math.max(0,(ev.clientX-pr.left)/pr.width*K.M.maxP),true),false);
+  } else { gxClear(); return; }
+  gxClear(key);
+  K.lh={x:ev.clientX, y:ev.clientY};
+}
+/* after a re-render (the live refresh every ~5 s) put the hover back where the pointer still is */
+function gxReapply(k){
+  var K=GX[k], lh=K.lh; if(!lh) return;
+  var t=document.elementFromPoint(lh.x,lh.y);
+  if(t) gcHover({target:t, clientX:lh.x, clientY:lh.y}); else gxClear();
+}
+document.addEventListener('pointermove',function(ev){ if(S.view==='game'||S.view==='home') gcHover(ev); },{passive:true});
+document.addEventListener('pointerdown',function(ev){ if(S.view==='game'||S.view==='home') gcHover(ev); },{passive:true});
+document.documentElement.addEventListener('mouseleave',function(){ gxClear(); });
 function tstat(side,name){ var t=((S.gc.sum||{}).boxscore||{}).teams||[]; var tt=t.filter(function(x){ return x.homeAway===side; })[0]; if(!tt) return null; var s=(tt.statistics||[]).filter(function(x){ return x.name===name; })[0]; return s?s.displayValue:null; }
 function cmpRow(label,a,h,fmt,lowGood){
   var na=parseFloat(a)||0, nh=parseFloat(h)||0, tot=na+nh||1;
@@ -2616,7 +2744,7 @@ function hmPick(){
 function hmWith(fn){
   if(!S.hm.sum) return '';
   var keep=S.gc;
-  S.gc={id:S.hm.id, sum:S.hm.sum, t:S.hm.t, busy:false, team:'all', per:'all', kinds:{G:1,S:1,M:1,B:1}, sel:null, bx:null, pbp:'all', from:'#home', pre:keep.pre};
+  S.gc={id:S.hm.id, sum:S.hm.sum, t:S.hm.t, busy:false, team:'all', per:'all', kinds:{G:1,S:1,M:1,B:1}, sel:null, bx:null, pbp:'all', from:'#home', pre:keep.pre, hm:true};
   var out='';
   try{ out=fn()||''; }catch(e){ console.error('home',e); }
   S.gc=keep;
@@ -2727,11 +2855,13 @@ function renderHome(){
   $('hmTop').innerHTML=hmStrip();
   $('hmHero').innerHTML=hmHero();
   var st=S.hm.sum?hmState():'';
-  $('hmFlow').innerHTML=(st==='in'||st==='post')?hmWith(gcFlow):'';
+  /* v20: Game flow moved off the full-width strip and onto Win probability, as on the game center */
+  $('hmFlow').innerHTML='';
+  GX.hm.M=GX.hm.P=null;
   var A='',B='';
   if(st==='in'||st==='post'){
     A=hmWith(gcScoring)+hmWith(gcPens);
-    B=hmWith(gcWP)+hmWith(gcLine)+hmWith(gcStars)+hmWith(preForm);
+    B=hmWith(gcFlow)+hmWith(gcWP)+hmWith(gcLine)+hmWith(gcStars)+hmWith(preForm);
   } else if(st==='pre'){
     A=hmWith(preTape)+hmWith(preGoalies);
     B=hmWith(preStake)+hmWith(preWin)+hmWith(preForm);
@@ -2740,6 +2870,7 @@ function renderHome(){
   $('hmB').innerHTML=B;
   $('hmC').innerHTML=hmTonight()+hmDiv()+hmNext();
   $('hmNote').textContent=new Date().toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'});
+  gxReapply('hm');
 }
 
 /* ---------- v16: win probability ----------
@@ -2766,6 +2897,21 @@ function wpAt(mar,left,p0,shootout){
   for(i=0;i<=N;i++) for(j=0;j<=N;j++){ var d=mar+i-j, q=ph[i]*pa[j]; if(d>0) win+=q; else if(d===0) tie+=q; }
   return Math.min(0.999,Math.max(0.001,win+tie*ot));
 }
+/* v20: seconds into the game right now, from the status clock. ESPN's play clocks count up but the status
+   clock may count down (time left), so take whichever reading lands at or just after the last play and
+   closest to it, else the last play itself, never past the end of the current period. */
+function liveNow(per,clock,lastT){
+  per=+per||1; lastT=lastT||0;
+  if(gcType()!==3&&per>4) return Math.max(lastT,3900);          /* a shootout: the axis ends with OT */
+  var c=String(clock||'0:00').split(':'), cs=(+c[0]||0)*60+(+c[1]||0);
+  var start=gsec(per,'0:00'), len=per<=3?1200:(gcType()===3?1200:300), end=start+len;
+  var best=null;
+  [gsec(per,clock||'0:00'), start+(len-cs)].forEach(function(t){
+    t=Math.max(start,Math.min(end,t));
+    if(t>=lastT-5&&(best===null||Math.abs(t-lastT)<Math.abs(best-lastT))) best=t;
+  });
+  return Math.min(end,best===null?lastT:best);
+}
 /* one point per play, so the line follows the game rather than the goals alone */
 function wpSeries(){
   var ids=gcIds(), st=gcState(), p0=wpP0(ids.a,ids.h);
@@ -2780,7 +2926,7 @@ function wpSeries(){
   });
   var c=gcComp(), sstat=c.status||{};
   if(st==='in'){
-    var now=gsec(sstat.period||1,sstat.displayClock||'0:00');
+    var now=liveNow(sstat.period||1,sstat.displayClock||'0:00',pts[pts.length-1].t);   /* v20: either clock direction */
     if(now>pts[pts.length-1].t) pts.push({t:now,v:wpAt(mar,Math.max(0,3600-now),p0),p:null});
   } else if(st==='post'){
     var A=gcSide('away'), H=gcSide('home');
@@ -2791,34 +2937,35 @@ function wpSeries(){
   return {pts:pts, p0:p0, ids:ids, so:so};
 }
 function gcWP(){
+  var K=GX[gxKey()]; K.P=null;
   var st=gcState(); if(st==='pre') return '';
-  var S1=wpSeries(), pts=S1.pts, ids=S1.ids;
+  var ax=gcAxis(), S1=ax.ser, pts=S1.pts, ids=S1.ids, tr=ax.track;
   if(pts.length<3) return '';
   var up=(ids.h===FAV||ids.a===FAV)?FAV:ids.h;          /* the Stars ride the line whenever they are playing */
   var flip=up!==ids.h;
-  var cols=pairCols(ids.a,ids.h), col=up===ids.h?cols.h:cols.a;
+  var cols=pairCols(ids.a,ids.h), col=up===ids.h?cols.h:cols.a, col2=up===ids.h?cols.a:cols.h;
   var v=function(q){ return flip?1-q.v:q.v; };
-  var endT=Math.max(3600,pts[pts.length-1].t);
+  /* v20: the same period axis as Game flow, laid out from puck drop */
+  var maxP=ax.maxP, played=Math.ceil(ax.endU-1e-6);
   var W=600,H=150,pl=26,pr=8,pt=8,pb=15, iw=W-pl-pr, ih=H-pt-pb;
-  function X(t){ return pl+t/endT*iw; }
+  function X(u){ return pl+u/maxP*iw; }
   function Y(q){ return pt+(1-q)*ih; }
-  var d=pts.map(function(q,i){ return (i?'L':'M')+X(q.t).toFixed(1)+','+Y(v(q)).toFixed(1); }).join(' ');
-  var area='M'+X(0).toFixed(1)+','+Y(0.5).toFixed(1)+'L'+pts.map(function(q){ return X(q.t).toFixed(1)+','+Y(v(q)).toFixed(1); }).join('L')+'L'+X(pts[pts.length-1].t).toFixed(1)+','+Y(0.5).toFixed(1)+'Z';
+  var xs=tr.map(function(z){ return X(z.u); }), vs=pts.map(v), ys=vs.map(Y);
+  var d=pts.map(function(q,i){ return (i?'L':'M')+xs[i].toFixed(1)+','+ys[i].toFixed(1); }).join(' ');
+  var area='M'+X(0).toFixed(1)+','+Y(0.5).toFixed(1)+'L'+pts.map(function(q,i){ return xs[i].toFixed(1)+','+ys[i].toFixed(1); }).join('L')+'L'+xs[xs.length-1].toFixed(1)+','+Y(0.5).toFixed(1)+'Z';
   var grid='', lab='';
-  for(var k=1200;k<endT-60;k+=(k<3600?1200:(gcType()===3?1200:300))){
-    grid+='<line class="gl" x1="'+X(k).toFixed(1)+'" y1="'+pt+'" x2="'+X(k).toFixed(1)+'" y2="'+(pt+ih)+'"/>';
-  }
-  [[600,'1st'],[1800,'2nd'],[3000,'3rd']].forEach(function(p){ if(p[0]<endT) lab+='<text class="ax" x="'+X(p[0]).toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle">'+p[1]+'</text>'; });
-  if(endT>3600) lab+='<text class="ax" x="'+X((3600+endT)/2).toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle">'+(gcType()===3?'OT':'OT/SO')+'</text>';
+  for(var k=1;k<maxP;k++) grid+='<line class="gl" x1="'+X(k).toFixed(1)+'" y1="'+pt+'" x2="'+X(k).toFixed(1)+'" y2="'+(pt+ih)+'"/>';
+  for(k=1;k<=maxP;k++) lab+='<text class="ax'+(!ax.fin&&k>played?' fut':'')+'" x="'+X(k-0.5).toFixed(1)+'" y="'+(H-3)+'" text-anchor="middle">'+gcPerLab(k,ax.so)+'</text>';
   var goals='';
   pts.forEach(function(q,i){ if(!q.p||!q.p.scoringPlay||isSO(q.p)) return;
-    goals+='<circle class="gd" cx="'+X(q.t).toFixed(1)+'" cy="'+Y(v(q)).toFixed(1)+'" r="3.4" fill="'+col+'"><title>'+esc(perName(q.p.period.number)+' '+q.p.clock.displayValue+' · '+(q.p.text||'Goal'))+'</title></circle>';
+    goals+='<circle class="gd" cx="'+xs[i].toFixed(1)+'" cy="'+ys[i].toFixed(1)+'" r="3.4" fill="'+col+'"><title>'+esc(perName(q.p.period.number)+' '+q.p.clock.displayValue+' · '+(q.p.text||'Goal'))+'</title></circle>';
   });
   var svg='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="height:150px">'+grid+lab+
     '<path d="'+area+'" fill="'+col+'" opacity=".13"/>'+
     '<line class="mid" x1="'+pl+'" y1="'+Y(0.5)+'" x2="'+(W-pr)+'" y2="'+Y(0.5)+'"/>'+
     '<text class="ax" x="2" y="'+(pt+8)+'">100</text><text class="ax" x="6" y="'+(Y(0.5)+3)+'">50</text><text class="ax" x="10" y="'+(pt+ih)+'">0</text>'+
     '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round"/>'+goals+'</svg>';
+  K.P={W:W, H:H, pl:pl, iw:iw, maxP:maxP, xs:xs, ys:ys, vs:vs, track:tr, up:up, dn:up===ids.h?ids.a:ids.h, cu:col, cd:col2, ids:ids};
   var cur=v(pts[pts.length-1]);
   var head='<div class="wpt">'+imgT(up)+'<span class="wv" style="color:'+col+'">'+Math.round(cur*100)+'%</span><span class="wl">'+esc(nick(up))+(st==='post'?' (final)':' to win')+'</span></div>';
   var sw=[];
@@ -2828,7 +2975,7 @@ function gcWP(){
   var swings=sw.length?'<div class="swings"><h4>Biggest swings</h4>'+sw.map(function(x){
     return '<div><span class="wpa '+(x.d>0?'g':'r')+'">'+(x.d>0?'+':'')+Math.round(x.d*100)+'</span><span class="in">'+perName(x.p.period.number)+' '+esc(x.p.clock.displayValue)+'</span><span>'+esc(x.p.text||(x.p.type||{}).text||'')+'</span></div>';
   }).join('')+'</div>':'';
-  return card('Win probability',head+'<div class="wpw">'+svg+'</div>'+swings+
+  return card('Win probability',head+'<div class="wpw">'+svg+'<span class="wpx"></span><span class="wpdot"></span><div class="wptip"></div></div>'+swings+
     '<p class="wpn">Ours, not the NHL\'s: the score, the clock and how the two clubs have played, with goals arriving at about three a side per sixty. Empty nets counted late.</p>','o1',
     '<span class="gn">'+(st==='post'?'how it swung':'live')+'</span>');
 }
@@ -2839,17 +2986,20 @@ function gcRender(){
   if(!S.gc.sum){ el.innerHTML=gcTop('Game')+'<div class="empty">Loading the game</div>'; return; }
   var st=gcState();
   var keep=window.scrollY;
+  GX.gc.M=GX.gc.P=null;
   if(st==='pre'){
     el.innerHTML=gcTop('Preview')+gcHeader()+'<div class="gc-grid"><div class="gc-col gc-box">'+preTape()+prePlayers()+'</div>'+
       '<div class="gc-col gc-mid">'+preGoalies()+preStake()+'</div>'+
       '<div class="gc-col gc-side">'+preWin()+preSeries()+preForm()+preInfo()+gcInj()+'</div></div>';
   } else {
-    el.innerHTML=gcTop(st==='in'?'Game Center':'Game Breakdown')+gcHeader()+gcFlow()+'<div class="gc-grid">'+
+    /* v20: Game flow is the first card in the side column, stacked on Win probability */
+    el.innerHTML=gcTop(st==='in'?'Game Center':'Game Breakdown')+gcHeader()+'<div class="gc-grid">'+
       '<div class="gc-col gc-box">'+gcBox()+gcPBP()+'</div>'+
       '<div class="gc-col gc-mid">'+gcRink()+gcScoring()+gcPens()+'</div>'+
-      '<div class="gc-col gc-side">'+gcWP()+gcStars()+gcLine()+gcCompare()+gcInj()+'</div></div>';
+      '<div class="gc-col gc-side">'+gcFlow()+gcWP()+gcStars()+gcLine()+gcCompare()+gcInj()+'</div></div>';
   }
   if(Math.abs(window.scrollY-keep)>2) window.scrollTo(0,keep);
+  gxReapply('gc');   /* v20: a hover survives the live refresh */
 }
 function rinkHover(ev){
   var t=ev.target, tip=$('rtip'); if(!tip) return;
