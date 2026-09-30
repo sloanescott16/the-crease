@@ -1386,7 +1386,7 @@ html{color-scheme:dark}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v24';
+var VERSION='v25';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -1462,7 +1462,8 @@ function pairCols(aId,hId){
   var G='#1fa860';
   function sat(c){ var x=hex2(c); return Math.max(x[0],x[1],x[2])-Math.min(x[0],x[1],x[2]); }
   function base(id){ var m=S.tm[id]||{}; if(id===FAV) return G; var c=m.color||'#8b94a5';
-    if(sat(c)<40 && m.alt && sat(m.alt)>=60) c=m.alt;   /* v24: a black or grey primary (Bruins, Kings) reads as disabled; use the alternate */
+    var alt=m.alt||({BOS:'#fcb514',PIT:'#fcb514',VGK:'#b4975a'})[m.ab];   /* ESPN's hockey feeds often leave alternateColor out */
+    if(sat(c)<40 && alt && sat(alt)>=60) c=alt;   /* v24: a black or grey primary (Bruins, Kings) reads as disabled; use the alternate */
     return lift(c); }
   var a=base(aId), h=base(hId);
   if(aId!==FAV && near(a,G)) a=lift((S.tm[aId]||{}).alt||'#c9ced8');
