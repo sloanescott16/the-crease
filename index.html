@@ -7,15 +7,15 @@
 <link rel="icon" href="https://a.espncdn.com/i/teamlogos/nhl/500/dal.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ground:#07080a; --card:#11141a; --card2:#161a22; --line:#232936;
-  --ink:#e9edf4; --mute:#8b94a5; --dim:#5d6676;
+  --ground:#040507; --card:#0b0e12; --card2:#10141a; --line:#1b2129;
+  --ink:#e3e9f0; --mute:#8f9aa7; --dim:#5a6470;
   --blue:#1fa860; --blue-d:#0b4d2c; --red:#d6283a;
-  --race:#9b7bff; --good:#b8d94a; --bad:#e0475b; --warn:#e8a33d; --live:#ff3b4e;
-  --display:'Barlow Condensed',Impact,sans-serif;
-  --body:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --race:#9b7bff; --good:#b8d94a; --bad:#e0475b; --warn:#f2b632; --live:#ff3b4e;
+  --display:'Big Shoulders Display','TeX Gyre Heros Cn','Arial Narrow','Roboto Condensed',Impact,sans-serif;
+  --body:'IBM Plex Sans Condensed','TeX Gyre Heros Cn','Arial Narrow','Roboto Condensed',system-ui,sans-serif;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
@@ -1386,7 +1386,7 @@ html{color-scheme:dark}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v27';
+var VERSION='v28';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -4182,6 +4182,800 @@ boot();
   var gc=document.getElementById('gc'); if(gc) new MutationObserver(stick).observe(gc,{childList:true,subtree:true});
   window.gcStick=stick;
 })();
+</script>
+<style>
+/* ==== SKIN:centerice start ==== v28 "Center Ice at the AAC": arena-night skin. Tokens live in :root above;
+   everything else the skin changes is in this block, so a three-way merge only has to keep it last. */
+:root{--ci-well:#020304; --ci-ice:#d9e1ea; --ci-hi:#f1f5fa; --ci-gold:#f2b632; --ci-gh:#35d17c; --ci-vg:#006847;
+  --ci-crease:#4f9fe8; --ci-rred:#8c3440; --ci-blue:#2f5fb0; --ci-bez:#2c343e}
+body{background:var(--ground)}
+h1,h2,h3{font-weight:800}
+
+/* LED helpers: seven-segment digits (inline SVG built by ciSeg) and the dot mask used on the ribbon boards */
+.segs{display:inline-flex; align-items:flex-end; gap:.06em; line-height:1; vertical-align:bottom; filter:drop-shadow(0 0 .07em currentColor)}
+.segs .ci7{height:1em; width:.6em; display:block; overflow:visible}
+.segs .ci7c{width:.2em}
+.segs .k0{fill:currentColor; opacity:.075}
+.segs .k1{fill:currentColor}
+.civ{position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; font-size:1px !important; line-height:1px}
+
+/* ---------- top bar ---------- */
+.bar{background:rgba(4,5,7,.95); border-bottom:1px solid var(--line)}
+.brand h1{font-weight:900; letter-spacing:.14em; font-size:24px}
+.brand h1 b{color:var(--ci-gh); font-weight:900}
+.bar .rec{border-radius:2px; background:transparent; border-color:#28303a; font-weight:800; letter-spacing:.06em}
+.bar .rec span{letter-spacing:.04em}
+.nav{background:transparent; border:0; padding:0; gap:0; border-radius:0}
+.nav a{font-family:var(--display); font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:14.5px; border-radius:0; position:relative; color:var(--dim)}
+.nav a:hover{color:var(--ink)}
+.nav a.on{background:transparent; color:var(--ci-hi)}
+.nav a.on::after{content:""; position:absolute; left:10px; right:10px; bottom:-3px; height:3px; background:var(--blue)}
+.bar a.st.go{border-radius:2px; font-family:var(--display); font-weight:800; font-size:13.5px; letter-spacing:.14em; color:var(--ci-hi); background:rgba(255,59,78,.08)}
+.btn{border-radius:2px; font-family:var(--display); font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:12.5px; background:#0a0d11; border-color:#28303a}
+.flt{border-radius:2px}
+
+/* ---------- section heads, cards, segmented controls ---------- */
+.head h2,.gchd h2{font-weight:900; letter-spacing:.16em; font-size:22px}
+.head .sub{letter-spacing:.14em}
+.panel,.tb,.gcard{border-radius:2px; background:var(--card); border-color:var(--line)}
+.gcard>.gh,.tb .tbh{background:#0d1116; border-bottom-color:var(--line)}
+.gcard>.gh h3,.tb .tbh h3{letter-spacing:.2em; font-size:14.5px; font-weight:800; display:flex; align-items:center; gap:8px}
+.gcard>.gh h3::before,.tb .tbh h3::before{content:""; width:6px; height:6px; background:var(--blue); box-shadow:0 0 6px var(--blue); flex:none}
+.gcard>.gh .gn{letter-spacing:.12em; text-transform:uppercase; font-family:var(--display); font-weight:700; font-size:11.5px}
+.gcard.mfcard>.gh{border-radius:2px 2px 0 0}
+.seg{border-radius:2px; background:#07090c; border-color:#1f262f}
+.seg button{border-radius:0; font-family:var(--display); font-weight:800; letter-spacing:.12em; font-size:12.5px}
+.seg button.on{background:rgba(31,168,96,.16); color:#b6f3d0; box-shadow:inset 0 -2px 0 var(--blue)}
+.gc-back{border-radius:2px; font-family:var(--display); font-weight:800; letter-spacing:.12em; font-size:12.5px}
+.gc-why{border-radius:2px; font-family:var(--display); font-weight:800; letter-spacing:.12em; font-size:11.5px}
+.foot{color:var(--dim); letter-spacing:.04em}
+
+/* ---------- Home: the ribbon board ---------- */
+#secHome .hmtop{position:relative; gap:0; background:var(--ci-well); border-top:1px solid #28303a; border-bottom:1px solid #28303a;
+  box-shadow:0 0 0 1px #000; margin-bottom:0}
+#secHome .hmtop::after{content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(circle at 50% 50%,transparent 0 .95px,rgba(0,0,0,.5) 1.35px) 0 0/3px 3px}
+#secHome .hmt{background:transparent; border:0; border-right:1px solid #141a20; border-radius:0; padding:9px 16px 10px}
+#secHome .hmt:last-child{border-right:0}
+#secHome .hmt .k{font-family:var(--display); font-weight:800; font-size:11.5px; letter-spacing:.2em; color:var(--mute); line-height:1.4}
+#secHome .hmt b{font-weight:800; font-size:31px; line-height:1.34; letter-spacing:.04em; color:var(--ci-hi)}
+#secHome .hmt.dal b,#secHome .hmt.odds b{color:var(--ci-gh); text-shadow:0 0 12px rgba(53,209,124,.35)}
+#secHome .hmt .s{font-size:11px; line-height:1.35}
+#secHome .hmt.odds .s{color:var(--ci-gold)}
+a.hmt:hover{background:rgba(255,255,255,.02)}
+
+/* ---------- Home: the stage (rafters, cables, jumbotron) ---------- */
+.cistage{position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1120px) minmax(0,1fr); gap:0 18px; align-items:start;
+  padding:70px 0 20px; margin:0 -18px; overflow:hidden;
+  background:radial-gradient(ellipse 58% 70% at 50% 0%,rgba(143,154,167,.07),transparent 70%)}
+.ciraf{display:flex; gap:12px; justify-content:center; padding-top:0; margin-top:-70px; min-height:100px}
+.ciban{position:relative; width:40px; height:70px; display:flex; flex-direction:column; align-items:center; padding-top:10px; border:0; cursor:pointer;
+  background:linear-gradient(180deg,#0a3d28,#062818); clip-path:polygon(0 0,100% 0,100% 84%,50% 100%,0 84%); opacity:.4; transition:opacity .3s,filter .3s; font:inherit; color:inherit}
+.ciban::before{content:""; position:absolute; inset:2px 2px 0; border:1px solid rgba(217,225,234,.35); border-bottom:0; pointer-events:none}
+.ciban b{font-family:var(--display); font-weight:900; font-size:23px; line-height:1; color:var(--ci-ice)}
+.ciban:hover{opacity:.72}
+.ciban.lit{opacity:1; filter:drop-shadow(0 0 10px rgba(53,209,124,.55))}
+.ciban.lit b{color:#fff}
+.ciban.cup{width:48px; background:linear-gradient(180deg,#1b1f25,#0d1014)}
+.ciban.cup b{font-size:15px; color:var(--ci-gold); margin-top:4px}
+.cijumbo{position:relative; grid-column:2; margin:0 24px}
+.cijumbo::before,.cijumbo::after{content:""; position:absolute; top:16px; bottom:16px; width:22px; background:linear-gradient(90deg,#020304,#11161c); pointer-events:none}
+.cijumbo::before{left:-23px; clip-path:polygon(0 7%,100% 0,100% 100%,0 93%)}
+.cijumbo::after{right:-23px; transform:scaleX(-1); clip-path:polygon(0 7%,100% 0,100% 100%,0 93%)}
+.cicab{position:absolute; top:-70px; height:70px; width:2px; background:linear-gradient(180deg,#141a21,#3a434e)}
+.cicab.l{left:14%} .cicab.r{right:14%}
+.cilamp{position:absolute; left:50%; top:-42px; transform:translateX(-50%); width:46px; height:42px; cursor:pointer; z-index:4; border:0; background:none; padding:0}
+.cilamp .base{position:absolute; bottom:0; left:4px; right:4px; height:9px; background:#1c232b; border:1px solid #2f3843; border-radius:2px}
+.cilamp .dome{position:absolute; bottom:8px; left:10px; right:10px; height:29px; border-radius:14px 14px 3px 3px; overflow:hidden;
+  background:radial-gradient(circle at 40% 30%,#2a3038,#11151a 70%); border:1px solid #333c47}
+.cilamp .beam{position:absolute; inset:-60%; background:conic-gradient(from 0deg,transparent 0 70%,rgba(80,255,160,.95) 80%,transparent 90%); opacity:0}
+.cilamp:hover .dome{border-color:#4a5563}
+.cilamp.on .dome{background:radial-gradient(circle at 45% 35%,#b8ffd6,#1fa860 55%,#006847); box-shadow:0 0 30px 8px rgba(53,209,124,.65); border-color:#8ff0b8}
+.cilamp.on .beam{opacity:1; animation:cispin .55s linear infinite}
+.cilamp.on::after{content:""; position:absolute; left:50%; top:50%; width:280px; height:280px; margin:-140px 0 0 -140px; border-radius:50%; pointer-events:none;
+  background:conic-gradient(from 0deg,transparent 0 78%,rgba(53,209,124,.28) 85%,transparent 92%); animation:cispin .55s linear infinite}
+.cilamp.sm{top:-30px; width:34px; height:30px}
+.cilamp.sm .dome{left:7px; right:7px; height:20px; bottom:7px}
+.cilamp.sm .base{height:7px}
+@keyframes cispin{to{transform:rotate(360deg)}}
+
+#secHome .hmhero{background:#07090b; border:1px solid var(--ci-bez); border-radius:3px; padding:8px; margin-bottom:0;
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.9),0 0 0 1px #000,inset 0 1px 0 rgba(217,225,234,.08)}
+#secHome .hmhero.live{border-color:var(--ci-bez); box-shadow:0 30px 60px -20px rgba(0,0,0,.9),0 0 0 1px #000,inset 0 1px 0 rgba(217,225,234,.08)}
+#secHome .hmh{position:relative; margin:0 0 6px; min-height:30px; padding:3px 4px; background:var(--ci-well); border:1px solid #161c22; gap:10px}
+#secHome .hmh::after{content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle,transparent 0 .95px,rgba(0,0,0,.45) 1.35px) 0 0/3px 3px}
+.hml{position:relative; z-index:1; border-radius:2px; font-family:var(--display); font-weight:900; font-size:12px; letter-spacing:.18em}
+.ciring{flex:1; min-width:0; text-align:center; font-family:var(--display); font-weight:800; font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--ci-ice); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ciring i{font-style:normal; color:var(--dim); margin:0 8px}
+.ciring .rn{display:none}
+#secHome .hmh .hmgo,#secHome .hmh .hmback{margin-left:0; position:relative; z-index:1}
+#secHome .hmband{border-radius:0}
+#secHome .hmband:hover{box-shadow:0 0 0 1px #28303a}
+#secHome .lastev{margin:6px 0 0; border-radius:0; background:var(--ci-well); border:1px solid #161c22; border-left:3px solid var(--dim); position:relative}
+#secHome .lastev.goal{border-left-color:var(--ci-gold)} #secHome .lastev.pen{border-left-color:var(--ci-gold)} #secHome .lastev.shot{border-left-color:var(--blue)}
+#secHome .lastev b{color:var(--ci-gold); font-weight:800; letter-spacing:.14em; font-size:15px}
+#secHome .lastev span{color:var(--ci-ice); letter-spacing:.02em}
+
+/* the scoreboard face: Home hero and the Game Center banner share it, the Game Center one is slimmer */
+.gch{background:#020304 !important; border:1px solid #1b222a; border-radius:2px; position:relative; overflow:hidden}
+.gch::after{content:""; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg,rgba(255,255,255,.028) 0 1px,transparent 1px 3px)}
+.gch::before{content:""; position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 0 50px rgba(0,0,0,.9)}
+#gc .gch{overflow:visible}
+.gct .tn{font-weight:900; letter-spacing:.08em; text-transform:uppercase}
+.gct[data-tid="9"] .tn{color:var(--ci-gh)}
+.gct .tr{letter-spacing:.04em}
+.gct .ts{color:var(--ci-hi); line-height:1}
+.gct[data-tid="9"] .ts{color:var(--ci-gh)}
+.gct.lose .ts .segs{opacity:.55}
+.gcm .gs{color:var(--ci-hi); font-weight:800; letter-spacing:.14em}
+.gcm .gs.live{color:var(--ci-hi)}
+.gcm .gs .ciper{display:block; font-size:.62em; margin:0 auto .22em; width:max-content}
+.gcm .gs .ciclk{display:block; width:max-content; margin:0 auto}
+.gcm .gs3{letter-spacing:.14em; text-transform:uppercase; font-family:var(--display); font-weight:700; font-size:11.5px; color:var(--mute)}
+.gcm .gs3 .pp{background:rgba(242,182,50,.06) !important; color:var(--ci-gold) !important; border:1px solid rgba(242,182,50,.5); border-radius:0 !important;
+  font-family:var(--display); font-size:12px !important; letter-spacing:.14em; padding:3px 8px !important}
+#gc .gch{margin-bottom:12px}
+#gc .gch .gcm .gs{font-size:min(52px,6cqi)}
+#gc .gch.stuck .gcm .gs{font-size:30px}
+#gc .gch.stuck .gcm .gs .ciper{display:none}
+.cijumbo .gch{border-color:#161c22; padding:16px 22px 14px}
+@media (min-width:761px){
+  .cijumbo .gch:not(.stuck) .gct .ts{font-size:min(132px,12.5cqi)}
+  .cijumbo .gch:not(.stuck) .gct img{width:min(64px,6.4cqi); height:min(64px,6.4cqi)}
+  .cijumbo .gch:not(.stuck) .gct .tn{font-size:min(32px,3.3cqi)}
+  .cijumbo .gch:not(.stuck) .gcm{min-width:min(230px,24cqi)}
+  .cijumbo .gch .gcm .gs{font-size:min(80px,7.6cqi)}
+}
+
+.cifs{display:grid; grid-template-columns:repeat(var(--n),minmax(0,1fr)); gap:1px; background:#161c22; border:1px solid #161c22; margin-top:6px}
+.cijumbo .gcm .gs+.gs3:not(:has(.pp)){display:none}
+.cifs>div{background:var(--ci-well); padding:6px 8px 7px; text-align:center; min-width:0}
+.cifs small{display:block; font-family:var(--display); font-weight:800; font-size:11px; letter-spacing:.2em; color:var(--dim); text-transform:uppercase; white-space:nowrap; line-height:1.3}
+.cifs span{font-family:var(--display); font-weight:800; font-size:20px; letter-spacing:.04em; white-space:nowrap; line-height:1.25}
+.cifs i{font-style:normal; color:#323a45; margin:0 6px; font-weight:600}
+.cifs .o{color:var(--ci-ice)} .cifs .d{color:var(--ci-gh)}
+@media (max-width:760px){ .cifs{grid-template-columns:repeat(3,minmax(0,1fr))} .cifs span{font-size:17px} }
+/* ---------- penalty box clocks ---------- */
+.cipbox{display:grid; grid-template-columns:1fr 1fr; gap:1px; background:#161c22; border:1px solid #161c22; margin:0 0 10px}
+.cipbox .pbc{background:var(--ci-well); padding:8px 10px 9px; min-width:0}
+.cipbox .pbc>small{display:flex; justify-content:space-between; gap:6px; font-family:var(--display); font-weight:800; font-size:11.5px; letter-spacing:.2em; color:var(--mute); margin-bottom:4px}
+.cipbox .pbc>small em{font-style:normal; color:var(--dim); white-space:nowrap}
+.cipbox .prow{display:flex; justify-content:space-between; align-items:flex-end; font-size:25px; margin-top:6px; color:var(--ci-gold)}
+.cipbox .prow .no{font-size:.8em}
+.cipbox .prow.gh .k1{opacity:.075}
+.cipbox .who{display:block; font-size:10.5px; color:var(--ci-gold); letter-spacing:.04em; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.cipbox .pbc.box{box-shadow:inset 0 2px 0 var(--ci-gold)}
+.penr{border-radius:0}
+
+/* ---------- line score as the arena board ---------- */
+table.ls{border-collapse:separate; border-spacing:1px; background:#161c22; border:1px solid #161c22}
+table.ls th{background:var(--ci-well); font-family:var(--display); font-weight:800; letter-spacing:.2em; font-size:11px; border:0; padding:5px 3px}
+table.ls td{background:var(--ci-well); border:0}
+table.ls td.t{font-weight:900; letter-spacing:.08em; padding-left:8px}
+table.ls th:first-child{padding-left:8px}
+table.ls .R{border-left:0; background:#050708}
+table.ls td .segs{font-size:22px; color:var(--ci-hi)}
+table.ls tr.fav td .segs{color:var(--ci-gh)}
+table.ls td.R .segs{font-size:25px}
+table.ls .cur{background:#0a0506}
+table.ls td[data-cihat]{cursor:default; user-select:none}
+
+/* ---------- three stars ---------- */
+.stars3>div{background:var(--ci-well); border:1px solid #161c22; padding:8px 6px}
+.stars3 i{font-style:normal; color:var(--ci-gold); letter-spacing:.1em}
+.stars3>div:nth-child(2) i{color:#c9d2dc} .stars3>div:nth-child(3) i{color:#b98a5a}
+
+/* ---------- Around the league and the Scores page: mini scoreboards ---------- */
+.g{border-radius:2px; background:var(--ci-well); border-color:#161c22}
+.g.picked,.g.fav{box-shadow:0 0 0 1px var(--blue),0 0 18px rgba(31,168,96,.18)}
+.g .nm{font-weight:800; letter-spacing:.06em}
+.g .sc{color:var(--ci-hi)}
+.g .sc .segs{font-size:24px}
+.g .gstat{font-family:var(--display); font-weight:800; letter-spacing:.14em; text-transform:uppercase; font-size:11.5px}
+.g .chip{border-radius:2px; font-family:var(--display); font-weight:800; letter-spacing:.12em}
+.g .gfoot{border-top-color:#141a20}
+
+/* ---------- Scores page: every live game is a scoreboard face ---------- */
+.bg{border-radius:2px; background:#020304; border-color:#1b222a}
+.bg::after{content:""; position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
+.bg.fav{background:linear-gradient(160deg,rgba(31,168,96,.10),#020304 60%); border-color:rgba(31,168,96,.6)}
+.bg.other{background:#030406}
+.bg .br .ba{font-weight:900; letter-spacing:.08em}
+.bg .br .bs{color:var(--ci-hi); font-weight:800}
+.bg .br.cifav .ba,.bg .br.cifav .bs,.g .row[data-tid="9"] .sc{color:var(--ci-gh)}
+.bg .bst{font-weight:800; letter-spacing:.14em; text-transform:uppercase}
+.bg .ribbon{border-radius:0; font-family:var(--display); letter-spacing:.16em}
+.bg .bchip{border-radius:2px; font-family:var(--display); letter-spacing:.12em}
+/* ---------- Season: the pulse tiles become one ribbon board ---------- */
+.pulse{gap:1px; background:#161c22; border:1px solid #161c22}
+.pulse button{border-radius:0; border:0; background:var(--ci-well)}
+.pulse button:hover{transform:none; background:#070a0d}
+.pulse button.hero{background:linear-gradient(160deg,rgba(31,168,96,.14),var(--ci-well) 70%)}
+.pulse b{font-weight:800; letter-spacing:.04em; line-height:1.22}
+.pulse span{font-family:var(--display); font-weight:800; letter-spacing:.16em; font-size:11px}
+/* ---------- tables: Central, standings, race ---------- */
+table.st th{font-family:var(--display); font-weight:800; letter-spacing:.16em}
+table.st tr.cut td{border-bottom:1px solid var(--ci-gold)}
+table.st tr.fav td{background:rgba(31,168,96,.09)}
+table.st td.od.mid{color:var(--ci-gold)}
+.tsch td{border-top-color:#141a20}
+.tsch tr.next td{background:rgba(31,168,96,.08)}
+
+/* ---------- the rink under Game flow ---------- */
+.mfw{border-radius:34px; border:2px solid rgba(143,154,167,.5); box-shadow:0 0 0 2px #0d1116;
+  background:linear-gradient(180deg,#0c1117,#090d12)}
+.mfw .mfdiv{stroke:transparent}
+.mfw .mfax{stroke:rgba(217,225,234,.28); stroke-dasharray:4 5}
+.mft{left:18px} .mft.h{top:9px} .mft.a{bottom:9px}
+.cirk{position:absolute; inset:0; pointer-events:none}
+.cirk i{position:absolute; display:block}
+.cirk .gl{top:-2px; bottom:-2px; width:2px; margin-left:-1px; background:var(--ci-rred); opacity:.6}
+.cirk .bl{top:-2px; bottom:-2px; width:6px; margin-left:-3px; background:var(--ci-blue); opacity:.6}
+.cirk .rl{top:-2px; bottom:-2px; width:5px; margin-left:-2.5px; background:var(--ci-rred); opacity:.5}
+.cirk .cc{top:50%; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%; border:1.5px solid var(--ci-blue); opacity:.45}
+.cirk .fo{width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; border:1.5px solid var(--ci-rred); opacity:.35}
+.cirk .fd{width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:var(--ci-rred); opacity:.5}
+.cirk .net{top:50%; width:10px; height:22px; margin-top:-11px; border:1.5px solid rgba(143,154,167,.6)}
+.cirk .net.l{margin-left:-11px; border-right:0; border-radius:4px 0 0 4px}
+.cirk .net.r{margin-left:1px; border-left:0; border-radius:0 4px 4px 0}
+.cirk .ot{top:0; bottom:0; right:0; background:repeating-linear-gradient(45deg,rgba(143,154,167,.06) 0 1px,transparent 1px 7px)}
+.cicrease{position:absolute; top:50%; width:18px; height:36px; margin-top:-18px; padding:0; cursor:pointer; z-index:2;
+  background:rgba(79,159,232,.6); border:1.5px solid rgba(140,52,64,.85); transition:background .25s}
+.cicrease.l{border-left:0; border-radius:0 18px 18px 0}
+.cicrease.r{margin-left:-18px; border-right:0; border-radius:18px 0 0 18px}
+.cicrease:hover{background:rgba(79,159,232,.9)}
+.cicrease::after{content:""; position:absolute; inset:-10px; }
+@media (max-width:760px){ .mfw{border-radius:26px} .cirk .cc{width:40px;height:40px;margin:-20px 0 0 -20px} .cirk .fo{width:32px;height:32px;margin:-16px 0 0 -16px}
+  .cicrease{width:14px; height:28px; margin-top:-14px} .cicrease.r{margin-left:-14px} }
+
+/* ---------- pop-ups ---------- */
+.tmod .tsheet{border-radius:3px}
+
+/* display numerals get room for the face's own ascent, so a label under them never touches */
+.elim .n{line-height:1.2}
+.odds .pct{line-height:1.26}
+/* ---------- widths ---------- */
+@media (max-width:1400px){ .brand h1{letter-spacing:.1em} .nav a{letter-spacing:.08em; padding:5px 10px} .bar .rec{letter-spacing:.02em} }
+@media (max-width:1180px) and (min-width:641px){ .brand h1{letter-spacing:.03em; font-size:20px} .nav a{letter-spacing:.03em; font-size:12.5px; padding:5px 7px} .bar .rec{letter-spacing:0; font-size:17px} .bar .btn{letter-spacing:.05em; padding:6px 8px} .bar a.st.go{letter-spacing:.08em} }
+@media (max-width:950px) and (min-width:641px){ .nav a{letter-spacing:.04em; padding:5px 7px} .nav a .nl{display:none} .nav a .ns{display:inline} .brand h1{letter-spacing:.02em; font-size:18px} }
+@media (max-width:1400px){
+  .cistage{grid-template-columns:minmax(0,1fr); padding-top:0}
+  .ciraf{grid-row:1; margin:0; min-height:0; height:84px; align-items:flex-start}
+  .ciraf.l{justify-content:flex-start; padding-left:6%} .ciraf.r{justify-content:flex-end; padding-right:6%}
+  .ciraf.l,.ciraf.r{grid-column:1}
+  .cijumbo{grid-column:1; grid-row:2}
+  .cicab{top:-84px; height:84px}
+  .cicab.l{left:36%} .cicab.r{right:36%}
+}
+@media (max-width:760px){
+  .cistage{margin:0 -12px; padding-bottom:14px}
+  .ciraf{height:70px; gap:6px}
+  .ciraf.l{padding-left:4px} .ciraf.r{padding-right:4px}
+  .ciban{width:30px; height:54px; padding-top:8px}
+  .ciban b{font-size:17px}
+  .ciban.cup{width:38px} .ciban.cup b{font-size:12px}
+  .cicab,.cijumbo::before,.cijumbo::after{display:none}
+  .cijumbo{margin:0}
+  .cilamp{top:-38px}
+  .ciring{display:none}
+  #secHome .hmt{padding:8px 12px}
+  #secHome .hmt b{font-size:26px}
+  #secHome .hmt{border-bottom:1px solid #141a20}
+  .cijumbo .gch{padding:10px 8px}
+  .cijumbo .gch .gct .ts{font-size:60px}
+  .cijumbo .gch .gcm .gs{font-size:34px}
+  #gc .gch .gcm .gs{font-size:26px}
+  .cipbox .prow{font-size:21px}
+}
+@media (max-width:640px){ .brand h1{font-size:19px; letter-spacing:.08em} .bar .rec{letter-spacing:.02em} }
+/* ==== SKIN:centerice end ==== */
+</style>
+<script>
+/* ==== SKIN:centerice start ==== v28: the arena skin's behaviour. No base function is edited: the render functions
+   below are wrapped (the base calls them by their global names), so the parallel fix session's file merges cleanly. */
+(function(){
+  'use strict';
+  /* ---- seven-segment digits ---- */
+  var SP={a:'9,4 13,0 37,0 41,4 37,8 13,8',b:'38,9 42,5 46,9 46,40 42,44 38,40',c:'38,50 42,46 46,50 46,81 42,85 38,81',
+    d:'9,86 13,82 37,82 41,86 37,90 13,90',e:'4,50 8,46 12,50 12,81 8,85 4,81',f:'4,9 8,5 12,9 12,40 8,44 4,40',g:'9,45 13,41 37,41 41,45 37,49 13,49'};
+  var SM={0:'abcdef',1:'bc',2:'abdeg',3:'abcdg',4:'bcfg',5:'acdfg',6:'acdefg',7:'abc',8:'abcdefg',9:'abcdfg','-':'g',' ':'',
+    n:'ceg',d:'bcdeg',s:'acdfg',t:'defg',r:'eg',P:'abefg',E:'adefg',L:'def',o:'cdeg',A:'abcefg',H:'bcefg',O:'abcdef',C:'adef',F:'aefg',G:'acdef',b:'cdefg',U:'bcdef',y:'bcdfg',h:'cefg',I:'ef',S:'acdfg',T:'defg'};
+  function seg(str){
+    var h='<span class="segs" aria-hidden="true">';
+    String(str).split('').forEach(function(ch){
+      if(ch===':'||ch==='.'){ h+='<svg class="ci7 ci7c" viewBox="0 0 16 90"><circle class="k1" cx="7" cy="'+(ch===':'?30:84)+'" r="4.5"/>'+(ch===':'?'<circle class="k1" cx="5" cy="64" r="4.5"/>':'')+'</svg>'; return; }
+      var on=SM[ch]!=null?SM[ch]:(SM[ch.toLowerCase()]!=null?SM[ch.toLowerCase()]:'');
+      h+='<svg class="ci7" viewBox="-2 -1 54 92"><g transform="skewX(-5) translate(4 0)">';
+      'abcdefg'.split('').forEach(function(k){ h+='<polygon class="'+(on.indexOf(k)>-1?'k1':'k0')+'" points="'+SP[k]+'"/>'; });
+      h+='</g></svg>';
+    });
+    return h+'</span>';
+  }
+  window.ciSeg=seg;
+  function e(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  var CI=window.CI={raf:{}, lampUntil:0, octoUntil:0, dalScore:{}};
+
+  /* ---- decorate a freshly rendered scoreboard: real text stays in the DOM (visually hidden), digits are aria-hidden SVG ---- */
+  var PER=/^(\d(?:st|nd|rd|th)|OT|\d?OT|SO)\s+(\d{1,2}:\d{2})$/i;
+  function deco(root){
+    if(!root) return;
+    [].forEach.call(root.querySelectorAll('.gch .gct .ts:not([data-ci])'),function(t){
+      var v=t.textContent.trim(); if(!/^\d{1,2}$/.test(v)) return;
+      t.setAttribute('data-ci','1'); t.innerHTML='<span class="civ">'+e(v)+'</span>'+seg(v);
+    });
+    [].forEach.call(root.querySelectorAll('.gch .gcm .gs:not([data-ci])'),function(t){
+      var v=t.textContent.trim(), m=v.match(PER); t.setAttribute('data-ci','1');
+      if(!m||!t.classList.contains('live')) return;
+      t.innerHTML='<span class="civ">'+e(v)+'</span><span class="ciper">'+seg(m[1])+'</span><span class="ciclk">'+seg(m[2])+'</span>';
+    });
+    [].forEach.call(root.querySelectorAll('.g .sc:not([data-ci]),.bg .br .bs:not([data-ci])'),function(t){
+      var v=t.textContent.trim(); t.setAttribute('data-ci','1'); if(!/^\d{1,2}$/.test(v)) return;
+      var br=t.closest('.br'), ba=br&&br.querySelector('.ba'); if(ba&&ba.textContent.trim()===ab(FAV)) br.classList.add('cifav');
+      t.innerHTML='<span class="civ">'+e(v)+'</span>'+seg(v);
+    });
+    [].forEach.call(root.querySelectorAll('table.ls tr'),function(tr){
+      [].forEach.call(tr.children,function(td){
+        if(td.tagName!=='TD'||td.classList.contains('t')||td.classList.contains('sc')||td.hasAttribute('data-ci')) return;
+        var n=td.firstChild; if(!n||n.nodeType!==3) return;
+        var v=n.textContent.trim(); if(!/^\d{1,2}$/.test(v)) return;
+        td.setAttribute('data-ci','1');
+        var s=document.createElement('span'); s.innerHTML='<span class="civ">'+e(v)+'</span>'+seg(v);
+        td.replaceChild(s,n);
+        if(td.classList.contains('R')&&tr.classList.contains('fav')) td.setAttribute('data-cihat','1');
+      });
+    });
+    var g=root.querySelector('#gc .gch');
+    if(g&&!g.querySelector('.cilamp')) g.insertAdjacentHTML('beforeend',lampHTML(true));
+  }
+  CI.deco=deco;
+  function lampHTML(sm){ return '<button class="cilamp'+(sm?' sm':'')+(Date.now()<CI.lampUntil?' on':'')+'" type="button" aria-label="Goal lamp" data-cilamp><span class="dome"><span class="beam"></span></span><span class="base"></span></button>'; }
+  CI.lampHTML=lampHTML;
+  CI.spin=function(ms){
+    CI.lampUntil=Date.now()+(ms||4200);
+    [].forEach.call(document.querySelectorAll('.cilamp'),function(l){ l.classList.add('on'); });
+    setTimeout(function(){ if(Date.now()>=CI.lampUntil-30) [].forEach.call(document.querySelectorAll('.cilamp'),function(l){ l.classList.remove('on'); }); },(ms||4200)+40);
+  };
+  /* the goal lamp spins by itself when a live Stars game's Dallas score goes up between refreshes */
+  function watch(sum){
+    try{
+      var c=((sum.header||{}).competitions||[])[0]||{}, st=(((c.status||{}).type)||{}).state;
+      var k=(c.competitors||[]).filter(function(x){ return String((x.team||{}).id)===FAV; })[0]; if(!k) return;
+      var id=String((sum.header||{}).id||c.id||''), v=+k.score||0, was=CI.dalScore[id];
+      CI.dalScore[id]=v;
+      if(st==='in'&&was!=null&&v>was){ CI.spin(5200); if(window.CIegg) window.CIegg.goal(); }
+    }catch(x){}
+  }
+
+  /* ---- rafters and the stage around the Home hero ---- */
+  var BANS=[['7','Neal Broten'],['8','Bill Goldsworthy'],['9','Mike Modano'],['1999','1999 Stanley Cup Champions'],['19','Bill Masterton'],['26','Jere Lehtinen'],['56','Sergei Zubov']];
+  function ban(b){ var cup=b[0]==='1999'; return '<button class="ciban'+(cup?' cup':'')+(CI.raf[b[0]]?' lit':'')+'" type="button" data-ciban="'+b[0]+'" title="'+e(b[1])+'" aria-label="'+e(b[1])+'"><b>'+b[0]+'</b></button>'; }
+  function venue(){ var s=S.hm.sum||{}, v=((s.gameInfo||{}).venue)||{}; return v.fullName?v.fullName+(v.address&&v.address.city?' <i>·</i> '+v.address.city:''):''; }
+  /* the stat row under the face: shots from the play log, the rest from the box score when ESPN has it */
+  function fstats(){
+    var st=gcState(); if(st==='pre') return '';
+    var ids=gcIds(), sh={}; sh[ids.a]=0; sh[ids.h]=0;
+    shots().forEach(function(p){ var k=shotKind(p); if(k==='G'||k==='S'){ var t=shooterTeam(p); if(t in sh) sh[t]++; } });
+    var fa=ids.a===FAV, cells=[['Shots',sh[ids.a],sh[ids.h]]];
+    function ts(n){ return [tstat('away',n),tstat('home',n)]; }
+    var fo=ts('faceoffPercent'); if(fo[0]!=null) cells.push(['Faceoff',Math.round(+fo[0])+'%',Math.round(+fo[1])+'%']);
+    var hi=ts('hits'); if(hi[0]!=null) cells.push(['Hits',hi[0],hi[1]]);
+    var bl=ts('blockedShots'); if(bl[0]!=null) cells.push(['Blocks',bl[0],bl[1]]);
+    var pg=ts('powerPlayGoals'), po=ts('powerPlayOpportunities'); if(pg[0]!=null&&po[0]!=null) cells.push(['Power play',pg[0]+'/'+po[0],pg[1]+'/'+po[1]]);
+    var pm=ts('penaltyMinutes'); if(pm[0]!=null) cells.push(['PIM',pm[0],pm[1]]);
+    return '<div class="cifs" style="--n:'+cells.length+'">'+cells.map(function(c){
+      return '<div><small>'+c[0]+'</small><span><b class="'+(fa?'d':'o')+'">'+e(c[1])+'</b><i>|</i><b class="'+(fa?'o':'d')+'">'+e(c[2])+'</b></span></div>'; }).join('')+'</div>';
+  }
+  var _hmHero=window.hmHero;
+  window.hmHero=function(){
+    var h=_hmHero.apply(this,arguments);
+    try{
+      if(!S.hm.sum) return h;
+      var ring='<span class="ciring"><span class="vn">'+venue()+'</span><span class="rn">Reunion Arena <i>·</i> Dallas <i>·</i> 1993 to 2001</span></span>';
+      h=h.replace(/(<div class="hmh"><span class="hml[^"]*">[^<]*<\/span>)/,'$1'+ring);
+      var fs=hmWith(fstats), ix=h.indexOf('<div class="lastev'); if(ix<0) ix=h.lastIndexOf('</div>');
+      if(fs) h=h.slice(0,ix)+fs+h.slice(ix);
+      return '<div class="cistage"><div class="ciraf l">'+BANS.slice(0,4).map(ban).join('')+'</div>'+
+        '<div class="cijumbo"><span class="cicab l"></span><span class="cicab r"></span>'+lampHTML(false)+h+'</div>'+
+        '<div class="ciraf r">'+BANS.slice(4).map(ban).join('')+'</div></div>';
+    }catch(x){ return h; }
+  };
+
+  /* ---- penalty box clocks above the Penalties list, from the real penalty log (wpPens) ---- */
+  function pbox(){
+    var ids=gcIds(), act=wpPens(), ps=plays(), c=gcComp(), sts=c.status||{};
+    var last=ps.filter(function(p){ return p.period&&p.clock; }).slice(-1)[0];
+    var lastT=last?gsec(last.period.number,last.clock.displayValue):0;
+    var live=gcState()==='in', now=live?liveNow(sts.period,sts.displayClock,lastT):-1;
+    function cell(tid){
+      var on=live?(act[tid]||[]).filter(function(x){ return x.st<=now&&x.end>now; }).sort(function(a,b){ return a.end-b.end; }).slice(0,2):[];
+      var rows='', who=[];
+      if(CI.octoUntil>Date.now()&&tid===ids.a&&on.length<2) on=on.concat([{octo:1}]);
+      for(var i=0;i<2;i++){
+        var x=on[i];
+        if(!x){ rows+='<div class="prow gh"><span class="no">'+seg('88')+'</span><span>'+seg('8:88')+'</span></div>'; continue; }
+        if(x.octo){ rows+='<div class="prow"><span class="no">'+seg('08')+'</span><span>'+seg('2:00')+'</span></div>'; who.push('#8 Octopus, delay of game'); continue; }
+        var p=ps.filter(function(q){ return isPen(q)&&String((q.team||{}).id)===tid&&gsec(q.period.number,q.clock.displayValue)===x.st; })[0]||{};
+        var a=((p.participants||[])[0]||{}).athlete||{}, jer=String(a.jersey||'').replace(/\D/g,'').slice(0,2);
+        var left=Math.max(0,Math.round(x.end-now)), lt=Math.floor(left/60)+':'+pad(left%60);
+        var nm=a.shortName||a.displayName||String(p.text||'').split(' ').slice(0,2).join(' ');
+        rows+='<div class="prow"><span class="no">'+seg(jer||'--')+'</span><span>'+seg(lt)+'</span></div>';
+        who.push((jer?'#'+jer+' ':'')+nm+', '+lt+' left');
+      }
+      return '<div class="pbc'+(on.length?' box':'')+'"><small>'+e(ab(tid))+' <em>No · Time</em></small>'+rows+
+        (who.length?'<span class="who">'+e(who.join(' · '))+'</span>':'<span class="civ">'+e(ab(tid))+' penalty box empty</span>')+'</div>';
+    }
+    return '<div class="cipbox" aria-label="Penalty box clocks">'+cell(ids.a)+cell(ids.h)+'</div>';
+  }
+  CI.pbox=pbox;
+  var _gcPens=window.gcPens;
+  window.gcPens=function(){
+    var h=_gcPens.apply(this,arguments);
+    try{ if(h) h=h.replace('<div class="gb">','<div class="gb">'+pbox()); }catch(x){}
+    return h;
+  };
+
+  /* ---- the rink painted behind the Game flow plot: goal lines at the plot ends, blue lines on the period breaks ---- */
+  function rink(maxP){
+    function X(u){ return (u/maxP*100).toFixed(3)+'%'; }
+    var g=X(3), h='<div class="cirk" aria-hidden="true">';
+    if(maxP>3) h+='<i class="ot" style="left:'+g+'"></i>';
+    h+='<i class="gl" style="left:0"></i><i class="gl" style="left:'+g+'"></i><i class="bl" style="left:'+X(1)+'"></i><i class="bl" style="left:'+X(2)+'"></i>'+
+      '<i class="rl" style="left:'+X(1.5)+'"></i><i class="cc" style="left:'+X(1.5)+'"></i>';
+    [0.34,2.66].forEach(function(u){ ['27%','73%'].forEach(function(y){ h+='<i class="fo" style="left:'+X(u)+';top:'+y+'"></i><i class="fd" style="left:'+X(u)+';top:'+y+'"></i>'; }); });
+    [0.86,2.14].forEach(function(u){ ['27%','73%'].forEach(function(y){ h+='<i class="fd" style="left:'+X(u)+';top:'+y+'"></i>'; }); });
+    h+='<i class="net l" style="left:0"></i><i class="net r" style="left:'+g+'"></i></div>';
+    return {bg:h, fg:'<button class="cicrease l" type="button" style="left:0" aria-label="The crease" data-cicrease></button><button class="cicrease r" type="button" style="left:'+g+'" aria-label="The crease" data-cicrease></button>'};
+  }
+  var _gcFlow=window.gcFlow;
+  window.gcFlow=function(){
+    var h=_gcFlow.apply(this,arguments);
+    try{
+      var M=(GX[gxKey()]||{}).M; if(!h||!M) return h;
+      var r=rink(M.maxP);
+      h=h.replace('<div class="mfpl">','<div class="mfpl">'+r.bg).replace('<span class="mfcur"></span>',r.fg+'<span class="mfcur"></span>');
+    }catch(x){}
+    return h;
+  };
+
+  /* ---- after each render: digits, lamp watch ---- */
+  var _renderHome=window.renderHome;
+  window.renderHome=function(){
+    var out=_renderHome.apply(this,arguments);
+    try{ deco($('secHome')); if(S.hm.sum) watch(S.hm.sum); }catch(x){}
+    return out;
+  };
+  var _gcRender=window.gcRender;
+  window.gcRender=function(){
+    var out=_gcRender.apply(this,arguments);
+    try{ deco($('gc')); if(S.gc.sum&&!S.gc.hm) watch(S.gc.sum); }catch(x){}
+    return out;
+  };
+  var _renderBoard=window.renderBoard;
+  window.renderBoard=function(){
+    var out=_renderBoard.apply(this,arguments);
+    try{ deco($('board')); }catch(x){}
+    return out;
+  };
+  try{ if(S.view==='home') renderHome(); else if(S.view==='game') gcRender(); else if(S.view==='live') renderBoard(); }catch(x){}
+})();
+/* ==== SKIN:centerice end ==== */
+</script>
+<style>
+/* ==== EGGS start ==== v28: fifteen hidden things. Every overlay closes on Esc or a click outside; effects never take input. */
+.cifoot{margin-top:8px; display:flex; justify-content:center; flex-wrap:wrap; gap:6px 14px; align-items:center; color:var(--dim); font-size:11.5px}
+.cifoot .hint{font-style:italic}
+.cifoot button{font:inherit; color:var(--mute); background:none; border:0; padding:0; cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px}
+.cifoot #cibuild{user-select:none; cursor:default}
+.cifoot #ciq{width:22px; height:22px; border:1px solid #28303a; border-radius:50%; text-decoration:none; display:inline-grid; place-items:center; font-weight:700}
+.cifoot #ciq:hover{border-color:var(--blue); color:var(--ci-gh)}
+.ciov{position:fixed; inset:0; z-index:200; display:none; place-items:center; background:rgba(1,2,3,.84); padding:16px; overflow:auto}
+.ciov.show{display:grid}
+.cicard{position:relative; background:#06080a; border:1px solid #28303a; border-radius:3px; max-width:680px; width:100%; box-shadow:0 30px 80px rgba(0,0,0,.9)}
+.cicard.wide{max-width:780px}
+.cicard .cix{position:absolute; right:8px; top:6px; font-size:20px; color:var(--mute); width:32px; height:32px; z-index:2; background:none; border:0; cursor:pointer}
+.cicard .cix:hover{color:var(--ink)}
+.citoast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px); z-index:220; background:#020304; border:1px solid #28303a; border-left:3px solid var(--blue);
+  padding:10px 16px; font-family:var(--display); font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:14px; color:var(--ink); opacity:0; transition:.3s; pointer-events:none; max-width:calc(100vw - 32px)}
+.citoast.show{opacity:1; transform:translateX(-50%)}
+.citoast small{display:block; font-family:var(--body); text-transform:none; letter-spacing:0; font-weight:400; color:var(--mute); font-size:12.5px; margin-top:2px}
+.cifx{position:fixed; inset:0; pointer-events:none; z-index:190; overflow:hidden}
+.ci-hat{position:absolute; top:-60px; width:44px; height:30px; animation:ci-fall linear forwards}
+@keyframes ci-fall{to{transform:translateY(calc(100vh + 120px)) rotate(var(--r))}}
+.ci-zam{position:absolute; top:44vh; left:-240px; width:220px; animation:ci-zam 4.2s linear forwards}
+@keyframes ci-zam{to{left:calc(100vw + 20px)}}
+.ci-sheen{position:absolute; inset:0; background:linear-gradient(90deg,rgba(217,225,234,.10),rgba(217,225,234,.03)); transform-origin:left; transform:scaleX(0); animation:ci-sheen 4.2s linear forwards,ci-sheenout 1.4s 4.2s forwards}
+@keyframes ci-sheen{to{transform:scaleX(1)}}
+@keyframes ci-sheenout{to{opacity:0}}
+.ci-octo{position:absolute; width:80px; left:calc(50% - 40px); top:-100px; animation:ci-octo 1s cubic-bezier(.5,0,.8,1) forwards,ci-wig .5s 1s ease-in-out 8 alternate}
+@keyframes ci-octo{to{top:46vh}}
+@keyframes ci-wig{from{transform:rotate(-8deg)}to{transform:rotate(8deg)}}
+.ci-goal{position:fixed; display:grid; place-items:center; background:rgba(0,40,24,.84); font-family:var(--display); font-weight:900; letter-spacing:.2em; color:var(--ci-gh);
+  text-shadow:0 0 30px var(--ci-gh); animation:ci-gf .3s steps(2) 8}
+@keyframes ci-gf{50%{opacity:.25}}
+.ci-five{position:fixed; width:196px; background:#020304; border:1px solid #28303a; padding:8px; z-index:195; box-shadow:0 10px 30px rgba(0,0,0,.8)}
+.ci-five svg{width:100%; height:60px; display:block}
+.ci-five p{margin:4px 0 0; font-family:var(--display); font-weight:800; font-size:12px; letter-spacing:.14em; color:var(--ci-gh); text-align:center}
+/* the shrine */
+.ci-shrine{padding:22px 22px 18px; background:radial-gradient(ellipse at 50% 40%,#0d1a13 0%,#050607 65%)}
+.ci-shrine h3{margin:0; text-align:center; font-family:var(--display); font-weight:900; font-size:28px; letter-spacing:.2em; color:var(--ci-gold)}
+.ci-shrine .sub{text-align:center; font-size:12px; color:var(--mute); letter-spacing:.14em; text-transform:uppercase; margin-top:2px}
+.ci-shrine svg{display:block; width:100%; height:auto; margin-top:6px}
+.ci-plaque{margin:6px auto 0; max-width:520px; border:1px solid #6e5418; outline:1px solid rgba(242,182,50,.25); outline-offset:3px; background:linear-gradient(180deg,#15110a,#0b0906); padding:12px 16px; text-align:center}
+.ci-plaque b{display:block; font-family:var(--display); font-weight:900; letter-spacing:.2em; color:var(--ci-gold); font-size:15px}
+.ci-plaque p{margin:6px 0 0; font-size:13px; color:#d8cdb4; line-height:1.5}
+.ci-plaque em{font-style:normal; color:var(--ci-gold)}
+.ci-btns{display:flex; justify-content:center; gap:10px; margin-top:12px; flex-wrap:wrap}
+.ci-btns button{font-family:var(--display); font-weight:800; letter-spacing:.14em; font-size:13px; padding:7px 14px; border:1px solid #6e5418; color:var(--ci-gold); text-transform:uppercase; background:none; cursor:pointer; border-radius:2px}
+.ci-btns button:hover{background:rgba(242,182,50,.08)}
+.ci-flame{transform-box:fill-box; transform-origin:50% 100%; animation:ci-flick .18s ease-in-out infinite alternate}
+@keyframes ci-flick{from{transform:scaleY(1) skewX(0)}to{transform:scaleY(1.12) skewX(3deg)}}
+.ci-halo{animation:ci-bob 2.4s ease-in-out infinite}
+@keyframes ci-bob{50%{transform:translateY(-5px)}}
+.ci-toe{animation:ci-toeglow 1.8s ease-in-out infinite}
+@keyframes ci-toeglow{50%{fill:#ffe08a}}
+.ci-puck{animation:ci-puck 3.6s ease-in forwards}
+@keyframes ci-puck{0%{transform:translate(0,0)}55%{transform:translate(104px,28px)}100%{transform:translate(104px,28px)}}
+.ci-gtxt{opacity:0; animation:ci-gt 3.6s forwards}
+@keyframes ci-gt{0%,58%{opacity:0}62%,100%{opacity:1}}
+.ci-chant{font-family:var(--display); font-weight:900; letter-spacing:.3em; fill:rgba(217,225,234,.05); font-size:16px}
+.ci-egg{padding:20px 22px}
+.ci-egg h3{margin:0 0 4px; font-family:var(--display); font-weight:900; font-size:24px; letter-spacing:.18em}
+.ci-egg p{margin:4px 0; color:var(--mute)}
+.ci-list{list-style:none; margin:12px 0 0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:6px}
+.ci-list li{border:1px solid var(--line); padding:7px 10px; font-size:13px; background:#020304}
+.ci-list li b{font-family:var(--display); font-weight:800; letter-spacing:.1em; font-size:14px; display:block}
+.ci-list li.got{border-color:var(--blue)} .ci-list li.got b{color:var(--ci-gh)} .ci-list li:not(.got) b{color:var(--dim)}
+.ci-list li span{color:var(--mute); font-size:12px}
+.ci-big9{display:flex; justify-content:center; align-items:center; padding:24px 0 8px; position:relative; overflow:hidden}
+.ci-big9 .segs{font-size:180px; color:var(--ci-gh); position:relative; z-index:1}
+.ci-flow path{animation:ci-flow 1.2s linear infinite}
+@keyframes ci-flow{to{stroke-dashoffset:-60}}
+.ci-howe{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px}
+.ci-howe div{border:1px solid #28303a; padding:14px 8px; text-align:center; font-family:var(--display); font-weight:900; font-size:20px; letter-spacing:.14em; color:var(--dim); opacity:.4; transition:.3s}
+.ci-howe div.on{opacity:1; color:var(--ci-gh); border-color:var(--blue); box-shadow:0 0 16px rgba(31,168,96,.3)}
+/* modes */
+html.cianniv .cicrease{background:rgba(242,182,50,.75); box-shadow:0 0 14px rgba(242,182,50,.7)}
+.cicrease.cipulse{animation:ci-cp .6s ease 3}
+@keyframes ci-cp{50%{background:#9cd0ff; box-shadow:0 0 16px #9cd0ff}}
+html.cimoot .cistage::before{content:""; position:absolute; inset:0; pointer-events:none; background:var(--ci-const) center/cover no-repeat; animation:ci-tw 3s ease-in-out infinite}
+@keyframes ci-tw{50%{opacity:.55}}
+html.cimoot .ciring,html.cimoot .gcard>.gh h3::before{color:var(--ci-gold)}
+html.cimoot .gcard>.gh h3::before{background:var(--ci-gold); box-shadow:0 0 6px var(--ci-gold)}
+html.cireunion .gch .segs{color:#ffc46b !important}
+html.cireunion .gch{background:#0a0703 !important}
+html.cireunion .gch::after{background:radial-gradient(circle,transparent 0 1.6px,rgba(0,0,0,.55) 2.2px) 0 0/5px 5px}
+html.cireunion .cistage{background:radial-gradient(ellipse 58% 70% at 50% 0%,rgba(255,196,107,.07),transparent 70%)}
+html.cireunion .ciring .vn{display:none} html.cireunion .ciring .rn{display:inline}
+html.cibeard .gct[data-tid="9"]{position:relative}
+html.cibeard .gct[data-tid="9"]::after{content:""; position:absolute; top:50%; width:62px; height:40px; pointer-events:none; z-index:2;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 44'%3E%3Cpath d='M2,2 Q4,30 30,42 Q56,30 58,2 Q50,14 40,12 Q30,20 20,12 Q10,14 2,2z' fill='%235b3a22'/%3E%3Cpath d='M8,8 l3,10 M16,12 l2,12 M26,16 l1,14 M36,16 l-1,14 M46,12 l-2,12 M53,8 l-3,10' stroke='%233a2414' stroke-width='1.5'/%3E%3C/svg%3E") center/contain no-repeat;
+  transform-origin:top; animation:ci-grow .8s ease-out}
+html.cibeard .gct.h[data-tid="9"]::after{right:-2px} html.cibeard .gct:not(.h)[data-tid="9"]::after{left:-2px}
+@keyframes ci-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@media (max-width:700px){ .ci-list{grid-template-columns:1fr} .ci-big9 .segs{font-size:120px} html.cibeard .gct[data-tid="9"]::after{width:36px;height:24px;top:2px} }
+@media (prefers-reduced-motion:reduce){ .cilamp.on .beam,.cilamp.on::after,.ci-flame,.ci-halo,.ci-toe{animation:none} }
+/* ==== EGGS end ==== */
+</style>
+<script>
+/* ==== EGGS start ==== v28: fifteen hidden things, most of them Dallas. Found ones are kept on this device only. */
+(function(){
+  'use strict';
+  var seg=window.ciSeg||function(s){ return String(s); }, CI=window.CI||{};
+  function q(s,r){ return (r||document).querySelector(s); }
+  function qa(s,r){ return [].slice.call((r||document).querySelectorAll(s)); }
+  var EGGS=[
+    ['shrine','The Toe Shrine','Somewhere in the crease'],['june19','June 19','Some days the crease lights itself'],
+    ['konami','Fresh sheet','An old code still works'],['modano','#9 flow','Type a franchise leader'],
+    ['mooterus','Mooterus mode','Type a 2003 alternate'],['hats','Hats on the ice','Three for the home side, on the board'],
+    ['lamp','Goal lamp','The light on top of the board'],['rafters','Full rafters','Raise every number'],
+    ['beard','Playoff beard','Type what grows in spring'],['cup','1999','Type the year, or find its banner'],
+    ['fivehole','Five-hole','Linger on the goalie'],['reunion','Reunion Arena','Type the old barn'],
+    ['octopus','Wrong building','Type a Detroit tradition'],['howe','Gordie Howe hat trick','Type Mr. Hockey'],
+    ['nogoal','No goal?','Read the footer closely']];
+  var KEY='crease-eggs-v1', found=[];
+  try{ found=JSON.parse(localStorage.getItem(KEY)||'[]')||[]; }catch(x){ found=[]; }
+  function mark(id){
+    if(found.indexOf(id)<0){ found.push(id); try{ localStorage.setItem(KEY,JSON.stringify(found)); }catch(x){} }
+    document.documentElement.setAttribute('data-cieggs',found.join(' '));
+  }
+  document.documentElement.setAttribute('data-cieggs',found.join(' '));
+
+  /* layers */
+  var root=document.createElement('div');
+  root.innerHTML='<div class="ciov" id="ciov"><div class="cicard" id="cicard"><button class="cix" type="button" id="cix" aria-label="Close">&#215;</button><div id="cibody"></div></div></div><div class="citoast" id="citoast" role="status"></div><div class="cifx" id="cifx"></div>';
+  while(root.firstChild) document.body.appendChild(root.firstChild);
+  var foot=q('.foot');
+  if(foot) foot.insertAdjacentHTML('beforeend','<div class="cifoot"><span class="hint">Some things are hidden in the crease.</span><button type="button" id="cinogoal">No goal?</button><span id="cibuild">build 14:51</span><button type="button" id="ciq" aria-label="Hidden things found">?</button></div>');
+
+  var tt;
+  function toast(h,sub,ms){ var t=q('#citoast'); t.innerHTML=h+(sub?'<small>'+sub+'</small>':''); t.classList.add('show'); clearTimeout(tt); tt=setTimeout(function(){ t.classList.remove('show'); },ms||3600); }
+  function open(html,wide,after){ var c=q('#cicard'); c.className='cicard'+(wide?' wide':''); q('#cibody').innerHTML=html; q('#ciov').classList.add('show'); if(after) after(q('#cibody')); }
+  function isOpen(){ return q('#ciov').classList.contains('show'); }
+  function close(){ q('#ciov').classList.remove('show'); q('#cibody').innerHTML=''; }
+  function fx(html,ms){ var d=document.createElement('div'); d.innerHTML=html; var n=d.firstChild; q('#cifx').appendChild(n); setTimeout(function(){ if(n.parentNode) n.parentNode.removeChild(n); },ms); return n; }
+  function rerender(){ try{ if(S.view==='home') renderHome(); else if(S.view==='game') gcRender(); }catch(x){} }
+  q('#ciov').addEventListener('click',function(ev){ if(ev.target.id==='ciov') close(); });
+  q('#cix').addEventListener('click',close);
+
+  /* 1. the shrine to the toe */
+  var candles=6; try{ candles=+localStorage.getItem('crease-candles')||6; }catch(x){}
+  function shrineSVG(){
+    var c='', F='font-family="Big Shoulders Display,TeX Gyre Heros Cn,Arial Narrow,sans-serif" font-weight="900"', i;
+    var pos=[[48,250,74],[80,250,56],[106,250,40],[494,250,40],[520,250,56],[552,250,74]];
+    for(i=0;i<Math.max(0,Math.min(candles-6,14));i++) pos.push([150+i*22+(i>6?150:0),250,16]);
+    pos.forEach(function(p,k){
+      c+='<g transform="translate('+p[0]+','+p[1]+')"><rect x="-7" y="'+(-p[2])+'" width="14" height="'+p[2]+'" rx="2" fill="#e9dfc8"/><rect x="-7" y="'+(-p[2])+'" width="4" height="'+p[2]+'" fill="#fff" fill-opacity=".35"/>'+
+        '<line x1="0" y1="'+(-p[2])+'" x2="0" y2="'+(-p[2]-4)+'" stroke="#222" stroke-width="1.4"/><g transform="translate(0,'+(-p[2]-3)+')"><circle cy="-8" r="15" fill="#f2b632" fill-opacity=".13"/>'+
+        '<path class="ci-flame" style="animation-delay:-'+(k*0.07)+'s" d="M0,0 C-5,-6 -3,-12 0,-18 C3,-12 5,-6 0,0z" fill="#ffcf5a"/><path d="M0,0 C-2,-3 -1.5,-6 0,-9 C1.5,-6 2,-3 0,0z" fill="#fff6d0"/></g></g>';
+    });
+    var rays=[0,30,60,120,150,180,210,330].map(function(a){ var r=a*Math.PI/180; return '<line x1="'+(320+Math.cos(r)*34).toFixed(1)+'" y1="'+(156+Math.sin(r)*13).toFixed(1)+'" x2="'+(320+Math.cos(r)*44).toFixed(1)+'" y2="'+(156+Math.sin(r)*18).toFixed(1)+'"/>'; }).join('');
+    return '<svg viewBox="0 0 600 310" role="img" aria-label="A shrine: Brett Hull\'s skate, toe in the crease, under a halo, between candles">'+
+      '<text class="ci-chant" x="300" y="26" text-anchor="middle">NO GOAL · NO GOAL · NO GOAL · NO GOAL</text><text class="ci-chant" x="300" y="48" text-anchor="middle">NO GOAL · NO GOAL · NO GOAL</text>'+
+      '<rect x="24" y="250" width="552" height="36" fill="#0f0c07" stroke="#6e5418"/><rect x="14" y="284" width="572" height="12" fill="#17120a" stroke="#6e5418"/>'+
+      '<text x="300" y="274" text-anchor="middle" '+F+' font-size="13" letter-spacing="5" fill="#6e5418">14:51 · 3OT · 6.19.1999</text>'+
+      '<rect x="130" y="96" width="340" height="154" fill="#0b1117" stroke="#2a333d"/>'+
+      '<path d="M240,222 L240,196 A60,50 0 0 1 360,196 L360,222 Z" fill="#4f9fe8" fill-opacity=".8" stroke="#c23a4a" stroke-width="2.5"/>'+
+      '<line x1="130" y1="222" x2="470" y2="222" stroke="#c23a4a" stroke-width="3"/>'+
+      '<path d="M262,222 v14 q0,10 10,10 h56 q10,0 10,-10 v-14" fill="none" stroke="#d9e1ea" stroke-width="2.5"/>'+
+      '<path d="M270,226 l60,16 M270,236 l50,8 M330,226 l-60,16 M330,236 l-50,8" stroke="#d9e1ea" stroke-opacity=".25"/>'+
+      '<g class="ci-replay"><circle class="ci-puck" cx="196" cy="208" r="6.5" fill="#050505" stroke="#8f9aa7" stroke-width="1.5"/>'+
+      '<text class="ci-gtxt" x="300" y="80" text-anchor="middle" '+F+' font-size="28" letter-spacing="6" fill="#35d17c">GOAL · IT STANDS</text></g>'+
+      '<g transform="translate(166,214) scale(1.1)"><rect x="-2" y="-4" width="160" height="4" rx="2" fill="#c9d2dc"/>'+
+      '<path d="M8,-4 L20,-18 L62,-18 L72,-4z M92,-4 L102,-18 L142,-18 L150,-4z" fill="#262b31" stroke="#8f9aa7" stroke-opacity=".4"/>'+
+      '<path d="M14,-18 L14,-80 Q14,-88 24,-88 L46,-88 Q54,-88 55,-80 L58,-56 Q70,-46 100,-42 L136,-36 Q156,-32 156,-24 L156,-18 Z" fill="#111417" stroke="#d9e1ea" stroke-opacity=".55" stroke-width="1.2"/>'+
+      '<path d="M44,-88 L58,-99 L64,-93 L56,-80z" fill="#1a1f24" stroke="#d9e1ea" stroke-opacity=".4"/>'+
+      '<path d="M62,-52 l6,6 M72,-48 l5,6 M82,-45 l5,6 M92,-43 l4,6" stroke="#d9e1ea" stroke-opacity=".6" stroke-width="1.6"/>'+
+      '<path class="ci-toe" d="M112,-40 L136,-36 Q156,-32 156,-24 L156,-18 L112,-18 Q106,-28 112,-40z" fill="#f2b632"/>'+
+      '<text x="22" y="-40" '+F+' font-size="20" fill="#35d17c">22</text></g>'+
+      '<g class="ci-halo"><ellipse cx="320" cy="156" rx="22" ry="6" fill="none" stroke="#f2b632" stroke-width="4"/><ellipse cx="320" cy="156" rx="28" ry="9" fill="none" stroke="#f2b632" stroke-opacity=".25" stroke-width="6"/></g>'+
+      '<g stroke="#f2b632" stroke-opacity=".55" stroke-width="1.5" stroke-linecap="round">'+rays+'</g>'+c+'</svg>';
+  }
+  function shrine(){
+    mark('shrine');
+    open('<div class="ci-shrine"><h3>&#9733; THE SHRINE OF THE TOE &#9733;</h3><div class="sub">Est. June 19, 1999 · Buffalo · third overtime</div>'+shrineSVG()+
+      '<div class="ci-plaque"><b>IN REVERENT MEMORY OF THE TOE</b><p>Brett Hull · <em>#22</em> · Game 6, Stanley Cup Final, at Buffalo<br>June 19, 1999 · <em>14:51</em> of the third overtime · Stars 2, Sabres 1<br>Assists: Jere Lehtinen, Mike Modano<br>The skate was in the crease. The goal stood. The rule changed that summer.<br>Buffalo still chants "No Goal". We light candles.</p></div>'+
+      '<div class="ci-btns"><button type="button" id="cirp">Replay the goal</button><button type="button" id="cilc">Light a candle ('+candles+')</button></div></div>',true,function(b){
+        q('#cirp',b).onclick=function(){ var r=q('.ci-replay',b); r.parentNode.replaceChild(r.cloneNode(true),r); };
+        q('#cilc',b).onclick=function(){ candles++; try{ localStorage.setItem('crease-candles',candles); }catch(x){} var s=q('svg',b), d=document.createElement('div'); d.innerHTML=shrineSVG(); s.parentNode.replaceChild(d.firstChild,s); this.textContent='Light a candle ('+candles+')'; };
+      });
+  }
+
+  /* 2. June 19: the crease lights itself (test with ?date=0619) */
+  (function(){
+    var m=location.search.match(/[?&]date=(\d\d)(\d\d)/), d=new Date(), mo=d.getMonth()+1, da=d.getDate();
+    if(m){ mo=+m[1]; da=+m[2]; }
+    if(mo===6&&da===19){ document.documentElement.classList.add('cianniv'); mark('june19'); setTimeout(function(){ toast('June 19 · the crease is lit','14:51 of the third overtime, 1999. Click the glowing crease on Game flow.',6000); },800); }
+  })();
+
+  /* 3. Konami: the Zamboni takes a lap */
+  var KON=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'], ki=0;
+  function zamboni(){
+    mark('konami');
+    fx('<div class="ci-sheen"></div>',5800);
+    fx('<svg class="ci-zam" viewBox="0 0 220 110"><rect x="10" y="40" width="150" height="46" rx="6" fill="#d9e1ea"/><rect x="10" y="40" width="150" height="10" fill="#1fa860"/><rect x="150" y="56" width="58" height="30" rx="4" fill="#aeb8c4"/>'+
+      '<rect x="60" y="14" width="44" height="30" rx="3" fill="none" stroke="#d9e1ea" stroke-width="4"/><rect x="72" y="26" width="20" height="16" fill="#101418"/><circle cx="50" cy="90" r="14" fill="#101418" stroke="#8f9aa7" stroke-width="3"/><circle cx="130" cy="90" r="14" fill="#101418" stroke="#8f9aa7" stroke-width="3"/>'+
+      '<text x="85" y="72" text-anchor="middle" font-family="Big Shoulders Display,TeX Gyre Heros Cn,sans-serif" font-weight="900" font-size="16" fill="#006847">FRESH SHEET</text></svg>',4400);
+    toast('Fresh sheet','The Zamboni took a lap.');
+  }
+  /* 4. MODANO */
+  function modano(){
+    mark('modano');
+    var fl=''; for(var i=0;i<7;i++) fl+='<path d="M-40,'+(40+i*16)+' C120,'+(20+i*16)+' 240,'+(70+i*16)+' 640,'+(34+i*16)+'" stroke="#35d17c" stroke-opacity="'+(0.12+i*0.05)+'" stroke-width="'+(2+i%3)+'" fill="none" stroke-dasharray="40 20"/>';
+    open('<div class="ci-egg"><h3>MODANO · #9</h3><div class="ci-big9"><svg class="ci-flow" viewBox="0 0 600 160" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">'+fl+'</svg>'+seg('9')+'</div><p>Mike Modano. Franchise leader in goals and points. Number 9, hanging in the rafters. The flow is implied.</p></div>');
+  }
+  /* 5. MOOTERUS */
+  var constURL='';
+  function mooterus(){
+    var on=document.documentElement.classList.toggle('cimoot'); mark('mooterus');
+    if(on&&!constURL){
+      var p=[[300,260],[360,200],[440,210],[520,190],[600,230],[640,300],[600,380],[500,400],[400,390],[330,340],[260,190],[230,120],[400,150],[420,80],[700,250],[760,210],[1060,230],[1120,160],[1200,140],[1260,210],[1320,260],[1280,340],[1180,380],[1100,360]];
+      var ed=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,0],[1,10],[10,11],[2,12],[12,13],[4,14],[14,15],[16,17],[17,18],[18,19],[19,20],[20,21],[21,22],[22,23],[23,16]];
+      var s="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 500' preserveAspectRatio='xMidYMid slice'>";
+      ed.forEach(function(k){ s+="<line x1='"+p[k[0]][0]+"' y1='"+p[k[0]][1]+"' x2='"+p[k[1]][0]+"' y2='"+p[k[1]][1]+"' stroke='#f2b632' stroke-opacity='.28' stroke-width='1.3'/>"; });
+      p.forEach(function(c,i){ s+="<circle cx='"+c[0]+"' cy='"+c[1]+"' r='"+(i%3?2.2:3.8)+"' fill='#f2b632'/>"; });
+      constURL='url("data:image/svg+xml,'+encodeURIComponent(s+'</svg>')+'")';
+      document.documentElement.style.setProperty('--ci-const',constURL);
+    }
+    toast(on?'Mooterus mode':'Mooterus mode off',on?'The 2003 to 2006 alternate rides the constellations. Type it again to leave.':'Back to Victory Green.');
+  }
+  /* 6. hats: the Stars' total on the Line score, three clicks */
+  var hatN=0, hatT;
+  function hats(){
+    mark('hats'); var cols=['#1fa860','#d9e1ea','#111','#f2b632','#006847','#8f9aa7'];
+    for(var i=0;i<36;i++){ var c=cols[i%cols.length];
+      fx('<svg class="ci-hat" viewBox="0 0 44 30" style="left:'+(Math.random()*96)+'vw;animation-duration:'+(2.4+Math.random()*2)+'s;animation-delay:'+(Math.random()*1.2)+'s;--r:'+(Math.random()*720-360)+'deg"><path d="M8,22 Q8,4 22,4 Q36,4 36,22z" fill="'+c+'"/><path d="M2,22 h40 v4 h-40z" fill="'+c+'" opacity=".85"/></svg>',5200); }
+    toast('Hats on the ice','Three for the home side. Somebody sweep that up.');
+  }
+  /* 7. the goal lamp, and the GOAL flash on the board (also fired by a real Stars goal) */
+  function flash(){
+    var g=q('.cijumbo .gch')||q('#gc .gch'); if(!g) return; var r=g.getBoundingClientRect(); if(!r.width) return;
+    fx('<div class="ci-goal" style="left:'+r.left+'px;top:'+r.top+'px;width:'+r.width+'px;height:'+r.height+'px;font-size:'+Math.min(r.height*.6,r.width*.16)+'px">GOAL</div>',2600);
+  }
+  function lamp(){ mark('lamp'); if(CI.spin) CI.spin(4200); flash(); toast('Dallas goal','The lamp spins Victory Green for every Stars goal.'); }
+  window.CIegg={goal:flash};
+  /* 8. rafters */
+  var RN={'7':'Broten','8':'Goldsworthy','9':'Modano','19':'Masterton','26':'Lehtinen','56':'Zubov'};
+  function rafter(n,el){
+    if(n==='1999'){ cup(); return; }
+    CI.raf=CI.raf||{}; CI.raf[n]=!CI.raf[n]; el.classList.toggle('lit',!!CI.raf[n]);
+    if(Object.keys(RN).every(function(k){ return CI.raf[k]; })){ mark('rafters'); toast('Full rafters','7 Broten · 8 Goldsworthy · 9 Modano · 19 Masterton · 26 Lehtinen · 56 Zubov',5200); }
+  }
+  /* 9. BEARD */
+  function beard(){ var on=document.documentElement.classList.toggle('cibeard'); mark('beard'); toast(on?'Playoff beard':'Beard shaved',on?'Grown in 0.8 seconds. No trims until June.':'Grow it back in April.'); }
+  /* 10. 1999 */
+  function cup(){
+    mark('cup');
+    open('<div class="ci-egg"><h3>1999 · STANLEY CUP CHAMPIONS</h3><svg viewBox="0 0 600 230" style="width:100%;height:auto;margin-top:6px" role="img" aria-label="Silhouette of a cup raised overhead">'+
+      '<defs><radialGradient id="cispot" cx="50%" cy="0%" r="80%"><stop offset="0" stop-color="#f2b632" stop-opacity=".18"/><stop offset="1" stop-color="#f2b632" stop-opacity="0"/></radialGradient></defs><rect width="600" height="230" fill="url(#cispot)"/>'+
+      '<g fill="#d9e1ea"><path d="M270,18 h60 q-2,26 -30,30 q-28,-4 -30,-30z"/><rect x="292" y="48" width="16" height="10"/><rect x="284" y="58" width="32" height="14"/><rect x="278" y="72" width="44" height="16"/><rect x="272" y="88" width="56" height="18"/><rect x="266" y="106" width="68" height="20"/></g>'+
+      '<g fill="none" stroke="#d9e1ea" stroke-width="12" stroke-linecap="round"><path d="M268,112 L220,150 L200,210"/><path d="M332,112 L380,150 L400,210"/></g>'+
+      '<g stroke="#020304" stroke-width="1.5"><line x1="278" y1="80" x2="322" y2="80"/><line x1="272" y1="97" x2="328" y2="97"/><line x1="266" y1="116" x2="334" y2="116"/></g></svg>'+
+      '<p>Joe Nieuwendyk took the Conn Smythe. Ed Belfour in goal, Dominik Hasek at the other end. Clinched in Game 6 at Buffalo, June 19, 1999.</p></div>');
+  }
+  /* 11. five-hole: linger on Oettinger wherever his name is a player link */
+  var fhT=null, fhEl=null;
+  document.addEventListener('pointerover',function(ev){
+    var el=ev.target&&ev.target.closest?ev.target.closest('[data-plid]'):null;
+    if(el===fhEl) return; clearTimeout(fhT); fhEl=el;
+    if(el&&/Oettinger/.test(el.textContent+' '+(el.getAttribute('data-pname')||''))) fhT=setTimeout(function(){ fivehole(el); },1200);
+  },true);
+  function fivehole(el){
+    mark('fivehole'); var r=el.getBoundingClientRect();
+    fx('<div class="ci-five" style="left:'+Math.max(8,Math.min(innerWidth-204,r.left))+'px;top:'+Math.max(8,r.top-92)+'px"><svg viewBox="0 0 190 60"><rect x="120" y="8" width="16" height="46" rx="3" fill="#d9e1ea"/><rect x="140" y="8" width="16" height="46" rx="3" fill="#d9e1ea"/><rect x="118" y="4" width="40" height="8" rx="2" fill="#1fa860"/>'+
+      '<circle cx="10" cy="46" r="5" fill="#050505" stroke="#8f9aa7"><animate attributeName="cx" values="10;128;60" keyTimes="0;.6;1" dur="1.1s" fill="freeze"/><animate attributeName="cy" values="46;46;14" keyTimes="0;.6;1" dur="1.1s" fill="freeze"/></circle></svg><p>SAVE · FIVE-HOLE CLOSED</p></div>',2600);
+  }
+  /* 12. REUNION */
+  function reunion(){ var on=document.documentElement.classList.toggle('cireunion'); mark('reunion'); toast(on?'Reunion Arena throwback':'Back to the AAC',on?'Home from 1993 to 2001. Bulbs warmed up. Type it again to leave.':'American Airlines Center, since 2001.'); }
+  /* 13. OCTOPUS */
+  function octopus(){
+    mark('octopus'); CI.octoUntil=Date.now()+8000; rerender(); setTimeout(rerender,8100);
+    fx('<svg class="ci-octo" viewBox="0 0 80 80"><ellipse cx="40" cy="28" rx="22" ry="20" fill="#8a3b6b"/>'+[10,20,30,40,50,60,70,76].map(function(x,i){ return '<path d="M'+(22+i*5)+',40 q'+(x-40)/3+',18 '+(x-22-i*5)+',36" stroke="#8a3b6b" stroke-width="5" fill="none" stroke-linecap="round"/>'; }).join('')+'<circle cx="33" cy="26" r="3" fill="#fff"/><circle cx="47" cy="26" r="3" fill="#fff"/></svg>',6000);
+    toast('Wrong building','Octopi are a Detroit thing. Eight arms, two minutes, delay of game.',5000);
+  }
+  /* 14. HOWE */
+  function howe(){
+    mark('howe');
+    open('<div class="ci-egg"><h3>GORDIE HOWE HAT TRICK</h3><p>A goal, an assist and a fight in one night.</p><div class="ci-howe"><div>GOAL</div><div>ASSIST</div><div>FIGHT</div></div></div>',false,function(b){
+      qa('.ci-howe div',b).forEach(function(d,i){ setTimeout(function(){ d.classList.add('on'); },350+i*450); }); });
+  }
+  /* 15. the footer No goal? */
+  function nogoal(){ mark('nogoal'); toast('It counted','14:51 of the third overtime, June 19, 1999. Check the crease.',5000);
+    qa('.cicrease').forEach(function(g){ g.classList.remove('cipulse'); void g.offsetWidth; g.classList.add('cipulse'); }); }
+  function checklist(){
+    open('<div class="ci-egg"><h3>HIDDEN IN THE CREASE</h3><p>'+found.length+' of '+EGGS.length+' found. Kept on this device only.</p><ul class="ci-list">'+
+      EGGS.map(function(x){ var g=found.indexOf(x[0])>-1; return '<li class="'+(g?'got':'')+'"><b>'+(g?x[1]:'? ? ?')+'</b><span>'+x[2]+'</span></li>'; }).join('')+'</ul></div>');
+  }
+
+  /* clicks: capture phase, so the site's own handler never sees an egg click */
+  var bN=0, bT;
+  document.addEventListener('click',function(ev){
+    var t=ev.target; if(!t||!t.closest) return;
+    var hit=function(){ ev.stopPropagation(); ev.preventDefault(); };
+    var b;
+    if(t.closest('[data-cicrease]')){ hit(); shrine(); return; }
+    if((b=t.closest('[data-ciban]'))){ hit(); rafter(b.getAttribute('data-ciban'),b); return; }
+    if(t.closest('[data-cilamp]')){ hit(); lamp(); return; }
+    if(t.closest('#cinogoal')){ hit(); nogoal(); return; }
+    if(t.closest('#ciq')){ hit(); checklist(); return; }
+    if(t.closest('#cibuild')){ hit(); bN++; clearTimeout(bT); bT=setTimeout(function(){ bN=0; },650); if(bN>=3){ bN=0; shrine(); } return; }
+    if(t.closest('[data-cihat]')){ hatN++; clearTimeout(hatT); hatT=setTimeout(function(){ hatN=0; },1200); if(hatN>=3){ hatN=0; hats(); } return; }
+  },true);
+
+  /* keys: Esc closes an egg before the site treats it as Back; typed words skip form fields */
+  var buf='', WORDS={NOGOAL:shrine,TOE:shrine,HULL:shrine,MODANO:modano,MOOTERUS:mooterus,BEARD:beard,'1999':cup,REUNION:reunion,OCTOPUS:octopus,HOWE:howe};
+  document.addEventListener('keydown',function(ev){
+    if(ev.key==='Escape'){ q('#cifx').innerHTML=''; if(isOpen()){ close(); ev.stopImmediatePropagation(); ev.preventDefault(); } return; }
+    var tg=ev.target; if(tg&&(tg.closest&&tg.closest('input,select,textarea,[contenteditable="true"]'))) return;
+    if(ev.metaKey||ev.ctrlKey||ev.altKey) return;
+    var k=ev.key||'';
+    if(k===KON[ki]||k.toLowerCase()===KON[ki]){ ki++; if(ki===KON.length){ ki=0; zamboni(); } } else ki=(k===KON[0])?1:0;
+    if(k.length!==1) return;
+    buf=(buf+k.toUpperCase()).slice(-12);
+    for(var w in WORDS){ if(buf.slice(-w.length)===w){ buf=''; WORDS[w](); break; } }
+  },true);
+  window.__ciEggs={found:function(){ return found.slice(); }, ids:EGGS.map(function(x){ return x[0]; })};
+})();
+/* ==== EGGS end ==== */
 </script>
 </body>
 </html>
