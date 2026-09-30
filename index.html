@@ -1386,7 +1386,7 @@ html{color-scheme:dark}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v26';
+var VERSION='v27';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -2197,7 +2197,7 @@ function gcHeader(){
 }
 
 /* the rink: every attempt, normalised so the away side shoots left and the home side shoots right */
-var RK={G:'Goal',S:'On goal',M:'Missed',B:'Blocked'};
+var RK={G:'Goal',S:'Saved',M:'Missed',B:'Blocked'};   /* v27: blocked attempts are off the map; a shot on target that was not a goal is a save */
 /* v9: the type chips carry the marker itself, so the separate legend row is gone */
 var RGLY={G:'<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="3.5" fill="currentColor" stroke="#fff" stroke-width="1.1"/></svg>',
   S:'<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="3" fill="currentColor"/></svg>',
@@ -2235,7 +2235,7 @@ function shotPts(){
     var xd=home?Math.abs(c.x):-Math.abs(c.x), flip=(xd<0)!==(c.x<0)&&c.x!==0;
     var yd=flip?-c.y:c.y;
     return {id:String(p.id), p:p, t:t, k:shotKind(p), per:p.period.number, x:+(xd+100).toFixed(1), y:+(42.5-yd).toFixed(1)};
-  }).filter(Boolean);
+  }).filter(function(q){ return q&&q.k!=='B'; });
 }
 function gcRink(){
   var ids=gcIds(), cols=pairCols(ids.a,ids.h), g=S.gc;
@@ -2246,11 +2246,11 @@ function gcRink(){
   var ta=tot(ids.a), th=tot(ids.h);
   var ctl='<div class="rctl"><span class="seg">'+[['all','Both'],[ids.a,imgT(ids.a)+esc(ab(ids.a))],[ids.h,imgT(ids.h)+esc(ab(ids.h))]].map(function(b){ return '<button data-rt="'+b[0]+'" class="'+(g.team===b[0]?'on':'')+'">'+b[1]+'</button>'; }).join('')+'</span>'+
     '<span class="seg">'+[['all','All']].concat(Object.keys(pers).sort().map(function(p){ return [p,perName(+p)]; })).map(function(b){ return '<button data-rp="'+b[0]+'" class="'+(g.per===b[0]?'on':'')+'">'+b[1]+'</button>'; }).join('')+'</span>'+
-    '<span class="seg kinds">'+['G','S','M','B'].map(function(k){ return '<button data-rk="'+k+'" class="'+(g.kinds[k]?'on':'')+'" title="'+RK[k]+'">'+RGLY[k]+'<span>'+RK[k]+'</span></button>'; }).join('')+'</span></div>';
+    '<span class="seg kinds">'+['G','S','M'].map(function(k){ return '<button data-rk="'+k+'" class="'+(g.kinds[k]?'on':'')+'" title="'+RK[k]+'">'+RGLY[k]+'<span>'+RK[k]+'</span></button>'; }).join('')+'</span></div>';
   function tside(o,id,col,h){
     return '<div class="rt'+(h?' h':'')+'"><span class="tm" style="color:'+col+'">'+imgT(id)+esc(ab(id))+'</span>'+
       '<span class="n"><b>'+(o.G+o.S)+'</b><i>SOG</i></span>'+
-      '<span class="sub">'+o.G+' G &middot; '+o.M+' miss &middot; '+o.B+' blk</span></div>';
+      '<span class="sub">'+o.G+' G &middot; '+o.S+' saved &middot; '+o.M+' miss</span></div>';
   }
   var tots='<div class="rtot">'+tside(ta,ids.a,cols.a,false)+tside(th,ids.h,cols.h,true)+'</div>';
   var last=lastEvent(list.length?list[list.length-1].id:null);
@@ -2259,7 +2259,7 @@ function gcRink(){
   }).join('');
   var body=ctl+tots+'<div class="rinkw" id="rinkw">'+rinkSVG(list,cols,ids,g.sel)+'<div class="rtip" id="rtip"></div></div>'+last+
     (rows?'<ol class="slist">'+rows+'</ol>':'<div class="empty">No shot attempts yet.</div>');
-  return card('Shot map',body,'o1','<span class="gn">'+list.length+' attempts shown</span>');
+  return card('Shot map',body,'o1','<span class="gn">'+list.length+' shots shown</span>');
 }
 function lastEvent(skipId){
   if(gcState()!=='in') return '';
