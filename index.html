@@ -1386,7 +1386,7 @@ html{color-scheme:dark}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v28';
+var VERSION='v29';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -2885,7 +2885,7 @@ function renderHome(){
   var A='',B='';
   if(st==='in'||st==='post'){
     A=hmWith(gcScoring)+hmWith(gcPens);
-    B=hmWith(gcFlow)+hmWith(gcWP)+hmWith(gcLine)+hmWith(gcStars)+hmWith(preForm);
+    B=hmWith(gcRink)+hmWith(gcFlow)+hmWith(gcWP)+hmWith(gcLine)+hmWith(gcStars)+hmWith(preForm);
   } else if(st==='pre'){
     A=hmWith(preTape)+hmWith(preGoalies);
     B=hmWith(preStake)+hmWith(preWin)+hmWith(preForm);
@@ -4401,32 +4401,13 @@ table.st td.od.mid{color:var(--ci-gold)}
 .tsch td{border-top-color:#141a20}
 .tsch tr.next td{background:rgba(31,168,96,.08)}
 
-/* ---------- the rink under Game flow ---------- */
-.mfw{border-radius:34px; border:2px solid rgba(143,154,167,.5); box-shadow:0 0 0 2px #0d1116;
-  background:linear-gradient(180deg,#0c1117,#090d12)}
-.mfw .mfdiv{stroke:transparent}
-.mfw .mfax{stroke:rgba(217,225,234,.28); stroke-dasharray:4 5}
-.mft{left:18px} .mft.h{top:9px} .mft.a{bottom:9px}
-.cirk{position:absolute; inset:0; pointer-events:none}
-.cirk i{position:absolute; display:block}
-.cirk .gl{top:-2px; bottom:-2px; width:2px; margin-left:-1px; background:var(--ci-rred); opacity:.6}
-.cirk .bl{top:-2px; bottom:-2px; width:6px; margin-left:-3px; background:var(--ci-blue); opacity:.6}
-.cirk .rl{top:-2px; bottom:-2px; width:5px; margin-left:-2.5px; background:var(--ci-rred); opacity:.5}
-.cirk .cc{top:50%; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%; border:1.5px solid var(--ci-blue); opacity:.45}
-.cirk .fo{width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; border:1.5px solid var(--ci-rred); opacity:.35}
-.cirk .fd{width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:var(--ci-rred); opacity:.5}
-.cirk .net{top:50%; width:10px; height:22px; margin-top:-11px; border:1.5px solid rgba(143,154,167,.6)}
-.cirk .net.l{margin-left:-11px; border-right:0; border-radius:4px 0 0 4px}
-.cirk .net.r{margin-left:1px; border-left:0; border-radius:0 4px 4px 0}
-.cirk .ot{top:0; bottom:0; right:0; background:repeating-linear-gradient(45deg,rgba(143,154,167,.06) 0 1px,transparent 1px 7px)}
-.cicrease{position:absolute; top:50%; width:18px; height:36px; margin-top:-18px; padding:0; cursor:pointer; z-index:2;
-  background:rgba(79,159,232,.6); border:1.5px solid rgba(140,52,64,.85); transition:background .25s}
-.cicrease.l{border-left:0; border-radius:0 18px 18px 0}
-.cicrease.r{margin-left:-18px; border-right:0; border-radius:18px 0 0 18px}
-.cicrease:hover{background:rgba(79,159,232,.9)}
-.cicrease::after{content:""; position:absolute; inset:-10px; }
-@media (max-width:760px){ .mfw{border-radius:26px} .cirk .cc{width:40px;height:40px;margin:-20px 0 0 -20px} .cirk .fo{width:32px;height:32px;margin:-16px 0 0 -16px}
-  .cicrease{width:14px; height:28px; margin-top:-14px} .cicrease.r{margin-left:-14px} }
+/* ---------- Game flow: a plain chart again (v29), recessed like Win probability; the rink lives on the Shot map ---------- */
+.mfw{background:#070a0d; border:1px solid var(--line); border-radius:0}
+/* the Shot map creases double as the shrine door */
+svg.rink path.crease{cursor:pointer; stroke:transparent; stroke-width:5; pointer-events:all; transition:fill .25s}
+svg.rink path.crease:hover{fill:rgba(79,159,232,.95)}
+/* Home shot map: same card as the game center */
+#secHome .rinkw{cursor:crosshair}
 
 /* ---------- pop-ups ---------- */
 .tmod .tsheet{border-radius:3px}
@@ -4471,7 +4452,7 @@ table.st td.od.mid{color:var(--ci-gold)}
 /* ==== SKIN:centerice end ==== */
 </style>
 <script>
-/* ==== SKIN:centerice start ==== v28: the arena skin's behaviour. No base function is edited: the render functions
+/* ==== SKIN:centerice start ==== v28: the arena skin's behaviour. v29 adds one base edit (renderHome puts the Shot map card on Home): the render functions
    below are wrapped (the base calls them by their global names), so the parallel fix session's file merges cleanly. */
 (function(){
   'use strict';
@@ -4614,28 +4595,39 @@ table.st td.od.mid{color:var(--ci-gold)}
     return h;
   };
 
-  /* ---- the rink painted behind the Game flow plot: goal lines at the plot ends, blue lines on the period breaks ---- */
-  function rink(maxP){
-    function X(u){ return (u/maxP*100).toFixed(3)+'%'; }
-    var g=X(3), h='<div class="cirk" aria-hidden="true">';
-    if(maxP>3) h+='<i class="ot" style="left:'+g+'"></i>';
-    h+='<i class="gl" style="left:0"></i><i class="gl" style="left:'+g+'"></i><i class="bl" style="left:'+X(1)+'"></i><i class="bl" style="left:'+X(2)+'"></i>'+
-      '<i class="rl" style="left:'+X(1.5)+'"></i><i class="cc" style="left:'+X(1.5)+'"></i>';
-    [0.34,2.66].forEach(function(u){ ['27%','73%'].forEach(function(y){ h+='<i class="fo" style="left:'+X(u)+';top:'+y+'"></i><i class="fd" style="left:'+X(u)+';top:'+y+'"></i>'; }); });
-    [0.86,2.14].forEach(function(u){ ['27%','73%'].forEach(function(y){ h+='<i class="fd" style="left:'+X(u)+';top:'+y+'"></i>'; }); });
-    h+='<i class="net l" style="left:0"></i><i class="net r" style="left:'+g+'"></i></div>';
-    return {bg:h, fg:'<button class="cicrease l" type="button" style="left:0" aria-label="The crease" data-cicrease></button><button class="cicrease r" type="button" style="left:'+g+'" aria-label="The crease" data-cicrease></button>'};
-  }
-  var _gcFlow=window.gcFlow;
-  window.gcFlow=function(){
-    var h=_gcFlow.apply(this,arguments);
-    try{
-      var M=(GX[gxKey()]||{}).M; if(!h||!M) return h;
-      var r=rink(M.maxP);
-      h=h.replace('<div class="mfpl">','<div class="mfpl">'+r.bg).replace('<span class="mfcur"></span>',r.fg+'<span class="mfcur"></span>');
-    }catch(x){}
-    return h;
+  /* ---- v29: Home gets its own Shot map card (three displays: shots, then Game flow stacked on Win probability).
+     Its filters live on S.hm.rk so they survive the live refresh and never touch the game center's state. ---- */
+  function hmRk(){ var r=S.hm.rk; if(!r||r.id!==S.hm.id) r=S.hm.rk={id:S.hm.id, team:'all', per:'all', kinds:{G:1,S:1,M:1,B:1}, sel:null}; return r; }
+  var _hmWith=window.hmWith;
+  window.hmWith=function(fn){
+    if(fn!==window.gcRink) return _hmWith(fn);
+    return _hmWith(function(){ var r=hmRk(); S.gc.team=r.team; S.gc.per=r.per; S.gc.kinds=r.kinds; S.gc.sel=r.sel; return window.gcRink(); });
   };
+  document.addEventListener('click',function(ev){
+    var t=ev.target; if(S.view!=='home'||!t||!t.closest) return;
+    var card=t.closest('#secHome .gcard'); if(!card||!card.querySelector('svg.rink')) return;
+    if(t.closest('svg.rink path.crease')) return;          /* the shrine door, handled by the eggs */
+    var r=hmRk(), b;
+    if((b=t.closest('[data-rt]'))) { r.team=b.getAttribute('data-rt'); r.sel=null; }
+    else if((b=t.closest('[data-rp]'))) { r.per=b.getAttribute('data-rp'); r.sel=null; }
+    else if((b=t.closest('[data-rk]'))) { var k=b.getAttribute('data-rk'); r.kinds[k]=!r.kinds[k]; }
+    else if((b=t.closest('[data-pid]'))) { var p=b.getAttribute('data-pid'); r.sel=r.sel===p?null:p; }
+    else return;
+    ev.stopPropagation(); ev.preventDefault(); renderHome();
+  },true);
+  document.addEventListener('mousemove',function(ev){
+    var sec=document.getElementById('secHome'); if(S.view!=='home'||!sec) return;
+    var tip=sec.querySelector('.rtip'), w=sec.querySelector('.rinkw'); if(!tip||!w) return;
+    var t=ev.target, pid=t&&t.getAttribute&&t.getAttribute('data-pid');
+    if(!pid||!t.closest||!t.closest('#secHome svg.rink')){ tip.style.display='none'; return; }
+    var q=null; _hmWith(function(){ q=shotPts().filter(function(x){ return x.id===pid; })[0]; });
+    if(!q){ tip.style.display='none'; return; }
+    var b=w.getBoundingClientRect();
+    tip.innerHTML='<b>'+e(RK[q.k])+' &middot; '+perName(q.per)+' '+e(q.p.clock.displayValue)+'</b>'+e(q.p.text);
+    tip.style.display='block';
+    var x=ev.clientX-b.left+12, y=ev.clientY-b.top+12; if(x>b.width-240) x=Math.max(0,x-252);
+    tip.style.left=x+'px'; tip.style.top=y+'px';
+  });
 
   /* ---- after each render: digits, lamp watch ---- */
   var _renderHome=window.renderHome;
@@ -4734,9 +4726,9 @@ table.st td.od.mid{color:var(--ci-gold)}
 .ci-howe div{border:1px solid #28303a; padding:14px 8px; text-align:center; font-family:var(--display); font-weight:900; font-size:20px; letter-spacing:.14em; color:var(--dim); opacity:.4; transition:.3s}
 .ci-howe div.on{opacity:1; color:var(--ci-gh); border-color:var(--blue); box-shadow:0 0 16px rgba(31,168,96,.3)}
 /* modes */
-html.cianniv .cicrease{background:rgba(242,182,50,.75); box-shadow:0 0 14px rgba(242,182,50,.7)}
-.cicrease.cipulse{animation:ci-cp .6s ease 3}
-@keyframes ci-cp{50%{background:#9cd0ff; box-shadow:0 0 16px #9cd0ff}}
+html.cianniv svg.rink path.crease{fill:rgba(242,182,50,.85)} html.cianniv .cicrease{background:rgba(242,182,50,.75); box-shadow:0 0 14px rgba(242,182,50,.7)}
+.cicrease.cipulse, svg.rink path.crease.cipulse{animation:ci-cp .6s ease 3}
+@keyframes ci-cp{50%{background:#9cd0ff; box-shadow:0 0 16px #9cd0ff; fill:#9cd0ff}}
 html.cimoot .cistage::before{content:""; position:absolute; inset:0; pointer-events:none; background:var(--ci-const) center/cover no-repeat; animation:ci-tw 3s ease-in-out infinite}
 @keyframes ci-tw{50%{opacity:.55}}
 html.cimoot .ciring,html.cimoot .gcard>.gh h3::before{color:var(--ci-gold)}
@@ -4844,7 +4836,7 @@ html.cibeard .gct.h[data-tid="9"]::after{right:-2px} html.cibeard .gct:not(.h)[d
   (function(){
     var m=location.search.match(/[?&]date=(\d\d)(\d\d)/), d=new Date(), mo=d.getMonth()+1, da=d.getDate();
     if(m){ mo=+m[1]; da=+m[2]; }
-    if(mo===6&&da===19){ document.documentElement.classList.add('cianniv'); mark('june19'); setTimeout(function(){ toast('June 19 · the crease is lit','14:51 of the third overtime, 1999. Click the glowing crease on Game flow.',6000); },800); }
+    if(mo===6&&da===19){ document.documentElement.classList.add('cianniv'); mark('june19'); setTimeout(function(){ toast('June 19 · the crease is lit','14:51 of the third overtime, 1999. Click the glowing crease on the Shot map.',6000); },800); }
   })();
 
   /* 3. Konami: the Zamboni takes a lap */
@@ -4940,7 +4932,7 @@ html.cibeard .gct.h[data-tid="9"]::after{right:-2px} html.cibeard .gct:not(.h)[d
   }
   /* 15. the footer No goal? */
   function nogoal(){ mark('nogoal'); toast('It counted','14:51 of the third overtime, June 19, 1999. Check the crease.',5000);
-    qa('.cicrease').forEach(function(g){ g.classList.remove('cipulse'); void g.offsetWidth; g.classList.add('cipulse'); }); }
+    qa('.cicrease, svg.rink path.crease').forEach(function(g){ g.classList.remove('cipulse'); void g.offsetWidth; g.classList.add('cipulse'); }); }
   function checklist(){
     open('<div class="ci-egg"><h3>HIDDEN IN THE CREASE</h3><p>'+found.length+' of '+EGGS.length+' found. Kept on this device only.</p><ul class="ci-list">'+
       EGGS.map(function(x){ var g=found.indexOf(x[0])>-1; return '<li class="'+(g?'got':'')+'"><b>'+(g?x[1]:'? ? ?')+'</b><span>'+x[2]+'</span></li>'; }).join('')+'</ul></div>');
@@ -4952,7 +4944,7 @@ html.cibeard .gct.h[data-tid="9"]::after{right:-2px} html.cibeard .gct:not(.h)[d
     var t=ev.target; if(!t||!t.closest) return;
     var hit=function(){ ev.stopPropagation(); ev.preventDefault(); };
     var b;
-    if(t.closest('[data-cicrease]')){ hit(); shrine(); return; }
+    if(t.closest('[data-cicrease]')||t.closest('svg.rink path.crease')){ hit(); shrine(); return; }
     if((b=t.closest('[data-ciban]'))){ hit(); rafter(b.getAttribute('data-ciban'),b); return; }
     if(t.closest('[data-cilamp]')){ hit(); lamp(); return; }
     if(t.closest('#cinogoal')){ hit(); nogoal(); return; }
