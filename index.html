@@ -1461,7 +1461,7 @@ var STARS_LOGO='img/stars-classic-dark.svg', STARS_LOGO_ALT='img/stars-classic-l
 function isStars(id){ var m=S.tm[id]||{}; return String(id)==='9'||String(m.ab||'').toUpperCase()==='DAL'; }
 function logo(id){ var m=S.tm[id]||{}; if(isStars(id)) return STARS_LOGO; return m.logo||('https://a.espncdn.com/i/teamlogos/nhl/500-dark/'+String(m.ab||'nhl').toLowerCase()+'.png'); }
 function imgT(id,cls){ return '<img'+(cls?' class="'+cls+'"':'')+' src="'+esc(logo(id))+'" alt="" onerror="'+onErr(id)+'">'; }
-function onErr(id){ var m=S.tm[id]||{}; var alt=isStars(id)?STARS_LOGO_ALT:'https://a.espncdn.com/i/teamlogos/nhl/500/'+String(m.ab||'nhl').toLowerCase()+'.png'; return "if(this.src!=='"+alt+"'){this.src='"+alt+"'}else{this.style.visibility='hidden'}"; }
+function onErr(id){ var m=S.tm[id]||{}; var alt=isStars(id)?STARS_LOGO_ALT:'https://a.espncdn.com/i/teamlogos/nhl/500/'+String(m.ab||'nhl').toLowerCase()+'.png'; return "if(!this.dataset.t){this.dataset.t='1';this.src='"+alt+"'}else{this.onerror=null;this.style.visibility='hidden'}"; }
 function tcol(id){ var m=S.tm[id]||{}; return m.color||'#5d6676'; }
 function hex2(c){ var n=parseInt(String(c).replace('#','').slice(0,6),16)||0; return [n>>16,(n>>8)&255,n&255]; }
 function lum(c){ var x=hex2(c); return (0.299*x[0]+0.587*x[1]+0.114*x[2]); }
