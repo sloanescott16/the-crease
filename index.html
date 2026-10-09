@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>The Crease</title>
-<link rel="icon" href="https://a.espncdn.com/i/teamlogos/nhl/500/dal.png">
+<link rel="icon" href="img/stars-classic-256.png"><!-- v33: the classic Stars mark, local copy (img/STARS-LOGO-SOURCE.md) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -1249,7 +1249,7 @@ html{color-scheme:dark}
 <body>
 <div class="bar">
   <a class="brand" href="https://sloanescott16.github.io/" title="Back to the Press Box" aria-label="The Crease, back to the Press Box">
-    <img id="favLogo" src="https://a.espncdn.com/i/teamlogos/nhl/500-dark/dal.png" alt="" onerror="this.src='https://a.espncdn.com/i/teamlogos/nhl/500/dal.png';this.onerror=null">
+    <img id="favLogo" src="img/stars-classic-dark.svg" alt="" onerror="this.src='img/stars-classic-light.svg';this.onerror=null">
     <h1>The <b>Crease</b></h1>
   </a>
   <div class="rec" id="favRec">--<span id="favLeft"></span></div>
@@ -1394,7 +1394,7 @@ html{color-scheme:dark}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v32';
+var VERSION='v33';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -1455,9 +1455,13 @@ function learnTeam(t){
 }
 function ab(id){ return (S.tm[id]||{}).ab||'?'; }
 function nick(id){ return (S.tm[id]||{}).nick||ab(id); }
-function logo(id){ var m=S.tm[id]||{}; return m.logo||('https://a.espncdn.com/i/teamlogos/nhl/500-dark/'+String(m.ab||'nhl').toLowerCase()+'.png'); }
+/* v33: the Captain wants the classic Stars logo wherever the Stars show. ESPN id 9 is Dallas (FAV); every
+   team logo in The Crease comes through logo() and onErr(), so the Stars are swapped here and nowhere else. */
+var STARS_LOGO='img/stars-classic-dark.svg', STARS_LOGO_ALT='img/stars-classic-light.svg';
+function isStars(id){ var m=S.tm[id]||{}; return String(id)==='9'||String(m.ab||'').toUpperCase()==='DAL'; }
+function logo(id){ var m=S.tm[id]||{}; if(isStars(id)) return STARS_LOGO; return m.logo||('https://a.espncdn.com/i/teamlogos/nhl/500-dark/'+String(m.ab||'nhl').toLowerCase()+'.png'); }
 function imgT(id,cls){ return '<img'+(cls?' class="'+cls+'"':'')+' src="'+esc(logo(id))+'" alt="" onerror="'+onErr(id)+'">'; }
-function onErr(id){ var m=S.tm[id]||{}; var alt='https://a.espncdn.com/i/teamlogos/nhl/500/'+String(m.ab||'nhl').toLowerCase()+'.png'; return "if(this.src!=='"+alt+"'){this.src='"+alt+"'}else{this.style.visibility='hidden'}"; }
+function onErr(id){ var m=S.tm[id]||{}; var alt=isStars(id)?STARS_LOGO_ALT:'https://a.espncdn.com/i/teamlogos/nhl/500/'+String(m.ab||'nhl').toLowerCase()+'.png'; return "if(this.src!=='"+alt+"'){this.src='"+alt+"'}else{this.style.visibility='hidden'}"; }
 function tcol(id){ var m=S.tm[id]||{}; return m.color||'#5d6676'; }
 function hex2(c){ var n=parseInt(String(c).replace('#','').slice(0,6),16)||0; return [n>>16,(n>>8)&255,n&255]; }
 function lum(c){ var x=hex2(c); return (0.299*x[0]+0.587*x[1]+0.114*x[2]); }
