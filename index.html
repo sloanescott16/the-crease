@@ -7,6 +7,8 @@
 <link rel="icon" href="img/stars-classic-256.png"><!-- v33: the classic Stars mark, local copy (img/STARS-LOGO-SOURCE.md) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://site.api.espn.com">
+<link rel="preconnect" href="https://a.espncdn.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -1459,9 +1461,12 @@ function nick(id){ return (S.tm[id]||{}).nick||ab(id); }
    team logo in The Crease comes through logo() and onErr(), so the Stars are swapped here and nowhere else. */
 var STARS_LOGO='img/stars-classic-dark.svg', STARS_LOGO_ALT='img/stars-classic-light.svg';
 function isStars(id){ var m=S.tm[id]||{}; return String(id)==='9'||String(m.ab||'').toUpperCase()==='DAL'; }
-function logo(id){ var m=S.tm[id]||{}; if(isStars(id)) return STARS_LOGO; return m.logo||('https://a.espncdn.com/i/teamlogos/nhl/500-dark/'+String(m.ab||'nhl').toLowerCase()+'.png'); }
-function imgT(id,cls){ return '<img'+(cls?' class="'+cls+'"':'')+' src="'+esc(logo(id))+'" alt="" onerror="'+onErr(id)+'">'; }
-function onErr(id){ var m=S.tm[id]||{}; var alt=isStars(id)?STARS_LOGO_ALT:'https://a.espncdn.com/i/teamlogos/nhl/500/'+String(m.ab||'nhl').toLowerCase()+'.png'; return "if(!this.dataset.t){this.dataset.t='1';this.src='"+alt+"'}else{this.onerror=null;this.style.visibility='hidden'}"; }
+/* optimise-1011: ESPN's 500 px logos weigh 60 to 90 KB each and 600 px headshots about 200 KB; the combiner returns the
+   same art at 240 px (5 to 10 KB). Anything that is not an ESPN CDN image passes through untouched. */
+function SM(u,w,h){ u=String(u||''); if(!/^https?:\/\/a\.espncdn\.com\/i\//.test(u)) return u; w=w||240; h=h||w; return 'https://a.espncdn.com/combiner/i?img='+u.replace(/^https?:\/\/a\.espncdn\.com/,'').replace(/\?.*$/,'')+'&w='+w+'&h='+h; }
+function logo(id){ var m=S.tm[id]||{}; if(isStars(id)) return STARS_LOGO; return SM(m.logo||('https://a.espncdn.com/i/teamlogos/nhl/500-dark/'+String(m.ab||'nhl').toLowerCase()+'.png')); }
+function imgT(id,cls){ return '<img'+(cls?' class="'+cls+'"':'')+' src="'+esc(logo(id))+'" alt="" loading="lazy" onerror="'+onErr(id)+'">'; }
+function onErr(id){ var m=S.tm[id]||{}; var alt=isStars(id)?STARS_LOGO_ALT:SM('https://a.espncdn.com/i/teamlogos/nhl/500/'+String(m.ab||'nhl').toLowerCase()+'.png'); return "if(!this.dataset.t){this.dataset.t='1';this.src='"+alt+"'}else{this.onerror=null;this.style.visibility='hidden'}"; }
 function tcol(id){ var m=S.tm[id]||{}; return m.color||'#5d6676'; }
 function hex2(c){ var n=parseInt(String(c).replace('#','').slice(0,6),16)||0; return [n>>16,(n>>8)&255,n&255]; }
 function lum(c){ var x=hex2(c); return (0.299*x[0]+0.587*x[1]+0.114*x[2]); }
@@ -1636,14 +1641,21 @@ function schRefresh(){
     return now-ts>12*3600e3;
   });
   if(!need.length){ S.schReady=true; return Promise.resolve(); }
+  /* optimise-1011: one scoreboard call per month (dates=YYYYMM) instead of one per day. A first visit used to make
+     about 190 calls; now it makes about 7. Every calendar day in a fetched month is filled from that one answer,
+     an empty day included, so it is not asked for again. */
+  var months=[]; need.forEach(function(k){ var m=k.slice(0,6); if(months.indexOf(m)<0) months.push(m); });
   var i=0, fails=0;
   function worker(){
-    if(i>=need.length) return Promise.resolve();
-    var k=need[i++];
-    return j(API+'/scoreboard?dates='+k+'&limit=100',20000).then(function(x){ schPut(k,(x.events||[]).map(evG)); },function(){ fails++; }).then(worker);
+    if(i>=months.length) return Promise.resolve();
+    var m=months[i++];
+    return j(API+'/scoreboard?dates='+m+'&limit=1000',30000).then(function(x){
+      var by={}; (x.events||[]).map(evG).forEach(function(g){ var k=ymd(new Date(g.date)); (by[k]=by[k]||[]).push(g); });
+      S.cal.forEach(function(k){ if(k.slice(0,6)===m&&k!==today&&(need.indexOf(k)>=0||!S.sch.g[k])) schPut(k,by[k]||[]); });
+    },function(){ fails++; }).then(worker);
   }
-  var ws=[]; for(var w=0;w<6;w++) ws.push(worker());
-  return Promise.all(ws).then(function(){ schSave(); S.schReady=fails<need.length*0.2; });
+  var ws=[]; for(var w=0;w<3;w++) ws.push(worker());
+  return Promise.all(ws).then(function(){ schSave(); var missing=S.cal.filter(function(k){ return !S.sch.g[k]; }).length; S.schReady=missing<S.cal.length*0.2; });
 }
 function remaining(){
   var now=Date.now()-5*3600e3;
@@ -2648,7 +2660,6 @@ function ovSplit(pid,name){
   var sp=o.splits.filter(function(s){ return s.displayName===name; })[0]; if(!sp) return null;
   var m={}; (o.labels||[]).forEach(function(l,i){ m[l]=sp.stats[i]; }); return m;
 }
-function ovLabel(){ return ''; }
 function preTape(){
   var ids=gcIds(), bt=S.bt[S.season||0];
   if(!bt||!bt.n) return card('Tale of the tape','<div class="empty">'+(bt?'No team stats yet.':'Loading team stats')+'</div>','o3');
@@ -3211,7 +3222,7 @@ function snYear(){ return S.sn.sea==='prev'?(S.season-1):S.season; }
 function snStatPrev(){ return S.sn.sea==='prev'||!started(); }
 function snSt(){ return snStatPrev()?S.prev:S.cur; }
 function seaLabel(y){ return (y-1)+'-'+String(y).slice(2); }
-function hsImg(id,cls){ return '<img'+(cls?' class="'+cls+'"':'')+' src="'+HS+esc(id)+'.png" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'; }
+function hsImg(id,cls){ return '<img'+(cls?' class="'+cls+'"':'')+' src="'+SM(HS+esc(id)+'.png',240,174)+'" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'; }   /* optimise-1011: 240 px headshot, not 600 */
 function numv(x){ if(x==null) return null; if(typeof x==='object') x=x.value!=null?x.value:x.displayValue; var n=parseFloat(x); return isNaN(n)?null:n; }
 function toiSec(s){ var p=String(s||'').split(':'); return p.length<2?0:(+p[0]||0)*60+(+p[1]||0); }
 function lday(iso){ var d=new Date(iso); return ymd(d); }
@@ -4036,17 +4047,24 @@ function tickSlow(){
 function tickSch(){
   return schRefresh().then(function(){ renderAll(); runOdds(); }, function(e){ console.error(e); });
 }
-function fastLoop(){
+/* optimise-1011: a hidden tab stops polling (visibilitychange starts it again at once); after a failed round the wait
+   doubles each time, 5 s, 10 s, 20 s, up to five minutes, instead of hammering a feed that is down. */
+var fastT=null, fastErr=0;
+function fastLoop(now){
+  clearTimeout(fastT);
+  if(document.hidden) return;
   var live=anyLive()||(S.view==='game'&&S.gc.sum&&gcState()==='in')||(S.view==='home'&&S.hm.sum&&hmState()==='in');
-  setTimeout(function(){
-    if(document.hidden){ fastLoop(); return; }
-    var now=Date.now();
-    var p=tickFast();
-    if(now-lastSlow>180000){ lastSlow=now; p=p.then(tickSlow); }
-    if(now-lastSch>3600000){ lastSch=now; p=p.then(tickSch); }
-    p.then(fastLoop,fastLoop);
-  }, live?5000:25000);
+  var wait=now?0:Math.min((live?5000:25000)*Math.pow(2,Math.min(fastErr,6)),300000);
+  fastT=setTimeout(function(){
+    if(document.hidden) return;
+    var t=Date.now();
+    var p=tickFast().then(function(){ fastErr=S.err?fastErr+1:0; });
+    if(t-lastSlow>180000){ lastSlow=t; p=p.then(tickSlow); }
+    if(t-lastSch>3600000){ lastSch=t; p=p.then(tickSch); }
+    p.then(function(){ fastLoop(); },function(){ fastErr++; fastLoop(); });
+  }, wait);
 }
+document.addEventListener('visibilitychange',function(){ if(document.hidden){ clearTimeout(fastT); return; } fastLoop(true); });
 function boot(){
   S.flt=lsGet('cr-flt')||'all'; syncFlt();
   S.sort=lsGet('cr-sort')==='wc'?'wc':'all';
