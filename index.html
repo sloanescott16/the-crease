@@ -1246,6 +1246,24 @@ a.hmt:hover{border-color:#39404f}
 /* v23: dark scrollbars (the shot list and play by play showed a white native bar) */
 html{color-scheme:dark}
 *{scrollbar-width:thin; scrollbar-color:#2f3747 transparent}
+/* v34: Watch button on each live game, copied from Command Center (v90) by way of Pennant Chase (v75). A blue pill in the
+   corner of a Scoreboard tile, a Tonight card and the Game Center title row; it opens the game on the service showing it, in a new tab. */
+a.watch{flex:none; margin-left:auto; display:inline-flex; align-items:center; gap:.45em; padding:.28em .7em .28em .6em; border-radius:999px; background:#1f6feb; color:#fff;
+  text-decoration:none; font-family:var(--cond,'Barlow Condensed','Arial Narrow',sans-serif); font-weight:800; font-size:1em; font-style:normal; line-height:1; letter-spacing:.06em;
+  text-transform:uppercase; white-space:nowrap; box-shadow:0 0 0 1px rgba(255,255,255,.14); cursor:pointer}
+a.watch i{flex:none; width:0; height:0; border-style:solid; border-width:.38em 0 .38em .6em; border-color:transparent transparent transparent #fff}
+a.watch span{font-weight:600; opacity:.85}
+a.watch:hover,a.watch:focus-visible{filter:brightness(1.15); box-shadow:0 0 0 2px #fff}
+.g .gfoot a.watch{font-size:12px}
+#gcWatch{display:flex}
+#gcWatch:empty{display:none}
+#gcWatch a.watch{font-size:14px; padding:7px 14px}
+@container (max-width:270px){ .bg .bf a.watch span{display:none} }
+/* tablets and phones: the button keeps to the right edge, after the updated note, even when it wraps to a line of its own */
+@media (max-width:900px){ #gcWatch{flex:1 0 auto; justify-content:flex-end} .gchd:has(#gcWatch a) .note{width:auto} #gcWatch a.watch{font-size:12px; padding:6px 11px} }
+/* phones: the button takes the top right corner, on the Back button's line; the title starts the next line */
+@media (max-width:480px){ .gchd .gc-back{order:-2} #gcWatch{order:-1; flex:1 0 calc(100% - 165px)} .gchd:has(#gcWatch a) .note{margin-left:auto} }
+@media (max-width:640px){ a.watch span{display:none} }
 </style>
 </head>
 <body>
@@ -1396,7 +1414,7 @@ html{color-scheme:dark}
 </div>
 <script>
 /* The Crease v1: Dallas Stars and the NHL. One static file, vanilla JS, ESPN public feeds. */
-var VERSION='v33';
+var VERSION='v34';
 var FAV='9';
 var API='https://site.api.espn.com/apis/site/v2/sports/hockey/nhl';
 var STAND='https://site.api.espn.com/apis/v2/sports/hockey/nhl/standings?level=3&season=';
@@ -1604,7 +1622,7 @@ function loadToday(){
     var L=(x.leagues||[])[0]||{};
     if(L.season){ S.season=L.season.year; S.stype=(L.season.type||{}).type||S.stype; GAMES=S.season>=2027?84:82; }
     if(L.calendar&&L.calendar.length) S.cal=L.calendar.map(function(c){ return ymd(new Date(typeof c==='string'?c:c.startDate)); });
-    S.today=(x.events||[]).map(evG);
+    S.today=(x.events||[]).map(evG); watchTick();   /* v34 */
     S.day.ev['0']=S.today; S.day.ev['0t']=Date.now();
     schPut(key,S.today);
   });
@@ -1847,7 +1865,8 @@ function gameCard(g,o){
     var bits=[];
     if(g.st==='pre'){ if(g.tv) bits.push(esc(g.tv)); if(g.venue) bits.push(esc(g.venue)); }
     else if(g.st==='in'&&o.it&&o.it.kind!=='fav'&&o.it.kind) bits.push('A regulation result keeps the loser off the board');
-    if(bits.length) foot='<div class="gfoot">'+bits.join(' &middot; ')+'</div>';
+    var wH=watchHTML(g);   /* v34: Watch on live cards, and from 30 minutes before puck drop */
+    if(bits.length||wH) foot='<div class="gfoot">'+(bits.length?'<span>'+bits.join(' &middot; ')+'</span>':'')+wH+'</div>';
   }
   return '<div class="g'+(fav?' fav':'')+(g.st==='in'?' live':'')+(o.cls?' '+o.cls:'')+'" data-gid="'+g.id+'">'+
     '<div class="gtop">'+chip+'<span class="gstat'+(gs.live?' live':'')+'">'+esc(gs.t)+'</span></div>'+
@@ -2056,6 +2075,112 @@ function tileKind(g){
   if(inRace(g.h.id)||inRace(g.a.id)) return 2;
   return 3;
 }
+/* v34: Watch button, copied from Command Center (v90, v91, v98, v110) by way of Pennant Chase (v75) and pointed at the NHL.
+   From 30 minutes before puck drop until the final, a game carries a Watch link that opens it on the service showing it,
+   in a new tab. The networks come from the ESPN scoreboard and summary feeds the site already reads (geoBroadcasts or
+   broadcasts): the national ones, plus the Stars' own local feed when the Stars play (other teams' local feeds are
+   blacked out in Dallas). In this order: ESPN, ESPN+, ABC or Hulu to that game's own stream when ESPN's public watch
+   listings show it (else the ESPN channel or the game's ESPN page); TNT, TBS, truTV or Max to HBO Max; NHL Network to
+   its page; then the Stars' local channel (Prime Video local, Victory+, KDFW on Fox One, KFAA). ESPN+ on a Stars game
+   that also lists a Stars local feed is the out-of-market stream, blacked out in Dallas, so the local feed wins there.
+   A game with none of these falls back to its ESPN game page. */
+var W={map:{},at:0,busy:false};
+var ESPN_FAM=/^(ESPN|ESPN2|ESPNU|ESPNEWS|ESPN\+|ESPN Unlimited|ESPN Deportes|ABC|Hulu|Hulu \+ Live TV|Disney\+)$/i;
+var WATCH_NETS=[
+  /* TNT/TBS/truTV stream on HBO Max; its game ids aren't public, so search the team (the live game is the top hit) */
+  [/^(TNT|TBS|truTV|TNT Sports|HBO Max|Max)$/i,'TNT',function(g){ return 'https://play.hbomax.com/search?q='+encodeURIComponent(nick(g.home===FAV||g.away===FAV?FAV:g.home)); }],
+  [/^(NHL Net|NHL Network|NHLN)$/i,'NHL Network','https://www.nhl.com/nhl-network/']
+];
+/* the Stars' local channels, tried after the national ones */
+var WATCH_LOCAL=[
+  [/^(Prime Video|Prime Video \(Local\)|Prime)$/i,'Prime','https://www.amazon.com/gp/video/search?phrase=Dallas%20Stars'],
+  [/^(Victory|Victory\+)$/i,'Victory+','https://www.victoryplus.com/'],
+  [/^(KDFW|KDFW 4|FOX 4)$/i,'FOX 4',function(g){ return foxOne(+g.date); }],
+  [/^(KFAA|KFAA 29)$/i,'KFAA','https://www.wfaa.com/watch']
+];
+/* Fox One plays his local FOX (KDFW Dallas) program that starts at a given moment; a KDFW game's program starts at puck drop */
+function foxOne(ms){ return 'https://www.fox.com/watch/epg/KDFW-program-KDFW-'+(Math.round(ms/60e3)*60e3)+'_dtc/live'; }
+function watchable(g){ return !!g&&(g.live||(g.state==='pre'&&g.date-Date.now()<=30*60e3&&Date.now()-g.date<4*36e5)); }
+/* national networks and the Stars' local ones from either feed shape: {market:{type},media:{shortName}} (geoBroadcasts,
+   summary) or {market:'national',names:[]} (scoreboard broadcasts) */
+function watchNets(list,home,away){
+  var nat=[], loc=[], seen={}, favSide=home===FAV?'home':away===FAV?'away':'';
+  (list||[]).forEach(function(b){
+    if(!b) return;
+    var m=String(typeof b.market==='string'?b.market:(b.market||{}).type||'').toLowerCase();
+    var ns=b.media&&b.media.shortName?[b.media.shortName]:(b.names||[]);
+    ns.forEach(function(n){
+      n=String(n||'').replace(/\s+/g,' ').trim(); if(!n||seen[n.toLowerCase()]) return;
+      if(m==='national'){ seen[n.toLowerCase()]=1; nat.push(n); }
+      else if(favSide&&m===favSide){ seen[n.toLowerCase()]=1; loc.push(n); }
+    });
+  });
+  return {nat:nat,loc:loc};
+}
+/* a scoreboard game in the shape Command Center's watch code expects */
+function watchGame(g){
+  if(!g||!g.h||!g.a) return null;
+  var c=((g.raw||{}).competitions||[])[0]||{}, bc=(c.geoBroadcasts&&c.geoBroadcasts.length)?c.geoBroadcasts:c.broadcasts;
+  var n=watchNets(bc,g.h.id,g.a.id);
+  return {id:g.id, live:g.st==='in', state:g.st, date:+new Date(g.date), nets:n.nat, loc:n.loc, home:g.h.id, away:g.a.id};
+}
+function watchLink(g){
+  var nets=g.nets||[], loc=g.loc||[], fam=null, i, k;
+  var fav=g.home===FAV||g.away===FAV, blackout=fav&&loc.length;   /* ESPN+ on a Stars game with a Stars local feed is out of market */
+  for(i=0;i<nets.length&&!fam;i++) if(ESPN_FAM.test(nets[i])&&!(blackout&&/^(ESPN\+|ESPN Unlimited|Hulu)$/i.test(nets[i]))) fam=nets[i];
+  if(fam){
+    var air=W.map[g.id];
+    if(air) return {net:fam,url:'https://www.espn.com/watch/player/_/id/'+air};
+    if(/^ESPN2?$/i.test(fam)) return {net:fam,url:'https://www.espn.com/watch/player/_/channel/'+fam.toLowerCase()};
+    return {net:fam,url:'https://www.espn.com/nhl/game/_/gameId/'+g.id};
+  }
+  for(k=0;k<WATCH_NETS.length;k++) for(i=0;i<nets.length;i++) if(WATCH_NETS[k][0].test(nets[i])){
+    var u=WATCH_NETS[k][2]; return {net:WATCH_NETS[k][1],url:typeof u==='function'?u(g):u};
+  }
+  for(k=0;k<WATCH_LOCAL.length;k++) for(i=0;i<loc.length;i++) if(WATCH_LOCAL[k][0].test(loc[i])){
+    var v=WATCH_LOCAL[k][2]; return {net:WATCH_LOCAL[k][1],url:typeof v==='function'?v(g):v};
+  }
+  return {net:'ESPN',url:'https://www.espn.com/nhl/game/_/gameId/'+g.id};   /* no known stream: the game's own page */
+}
+function watchHTML(g,kind){
+  var wg=g&&g.nets?g:watchGame(g);
+  if(!watchable(wg)) return '';
+  var w=watchLink(wg); if(!w) return '';
+  return '<a class="watch'+(kind?' '+kind:'')+'" href="'+esc(w.url)+'" target="_blank" rel="noopener" title="Watch on '+esc(w.net)+' (new tab)"><i></i>Watch<span>'+esc(w.net)+'</span></a>';
+}
+/* Game Center: state, puck drop and broadcasts from the game summary */
+function gcWatchHTML(){
+  if(!S.gc.sum) return '';
+  var c=gcComp(), ids=gcIds(), st=gcState(), s=S.gc.sum||{};
+  var bc=(c.broadcasts&&c.broadcasts.length)?c.broadcasts:(s.broadcasts||[]);
+  var n=watchNets(bc,ids.h,ids.a);
+  return watchHTML({id:String(S.gc.id||((s.header||{}).id)||''), live:st==='in', state:st, date:+new Date(c.date), nets:n.nat, loc:n.loc, home:ids.h, away:ids.a},'gcw');
+}
+/* ESPN family games: find the game's own airing in ESPN's public watch listings (ESPN event ids, the same ids this site uses) */
+function watchTick(){
+  if(W.busy||Date.now()-W.at<120e3) return;
+  var want=(S.today||[]).map(watchGame).filter(function(g){ return watchable(g)&&g.nets.some(function(n){ return ESPN_FAM.test(n); }); });
+  if(!want.length) return;
+  W.busy=true; W.at=Date.now();
+  fetch('https://watch.product.api.espn.com/api/product/v3/watchespn/web/home?lang=en&features=pbov7&countryCode=US&entitlements=ESPN_PLUS&tz=America%2FChicago')
+    .then(function(r){ return r.ok?r.json():null; }).then(function(d){
+      var map={};
+      (function walk(o){
+        if(!o||typeof o!=='object') return;
+        if(o.eventId&&Array.isArray(o.streams)&&o.streams.length){
+          var s=o.streams.filter(function(x){ return x.status==='live'; })[0]||o.streams.filter(function(x){ return x.tier==='primary'; })[0]||o.streams[0];
+          if(s&&s.id&&!map[o.eventId]) map[String(o.eventId)]=s.id;
+        }
+        for(var k in o) walk(o[k]);
+      })(d);
+      for(var k in map) W.map[k]=map[k];
+    }).catch(function(){ /* keep the fallback links */ }).then(function(){ W.busy=false; });
+}
+/* a Watch link sits inside clickable tiles: let the link open, but don't let the tile also open the game. This is the
+   first capture listener on the document, and it stops the others (the tile and card openers) outright. */
+document.addEventListener('click',function(e){ if(e.target.closest&&e.target.closest('a.watch')) e.stopImmediatePropagation(); },true);
+document.addEventListener('keydown',function(e){ if(e.key==='Enter'&&e.target.closest&&e.target.closest('a.watch')) e.stopImmediatePropagation(); },true);
+
 function renderBoard(){
   var live=S.today.filter(function(g){ return g.st==='in'&&g.h&&g.a&&gameIn(g); });
   live.sort(function(a,b){ return tileKind(a)-tileKind(b) || new Date(a.date)-new Date(b.date); });
@@ -2080,7 +2205,7 @@ function renderBoard(){
     }
     return '<div class="'+cls+'" data-gid="'+g.id+'">'+(rib?'<span class="ribbon">'+rib+'</span>':'')+
       '<div class="bt">'+chip+'<span class="bst live">'+esc(gs.t)+'</span></div>'+br('a')+br('h')+
-      '<div class="bf">'+(g.ty===1?'<span>Preseason</span>':'')+'<span>'+esc(nick(g.a.id))+' at '+esc(nick(g.h.id))+'</span></div></div>';
+      '<div class="bf">'+(g.ty===1?'<span>Preseason</span>':'')+'<span>'+esc(nick(g.a.id))+' at '+esc(nick(g.h.id))+'</span>'+watchHTML(g)+'</div></div>'; /* v34: Watch in the corner of the tile */
   }).join('');
 }
 
@@ -2161,7 +2286,7 @@ function gcTop(title){
     var g={h:{id:ids.h},a:{id:ids.a}}; var k=tileKind(g), it=rootFor(g);
     why=k===0?'<span class="gc-why fav">Stars</span>':k===1?(it.kind==='split'?'<span class="gc-why split">Regulation, please</span>':'<span class="gc-why root">Pull for '+esc(ab(it.pull))+'</span>'):k===2?'<span class="gc-why race" style="background:rgba(155,123,255,.16);color:#c4b2ff">Playoff race</span>':'';
   }
-  return '<div class="gchd"><button class="gc-back" data-back>&larr; Back</button><h2>'+title+'</h2>'+why+'<span class="note" id="gcNote">'+(gcState()==='in'?'refreshing every 5 seconds':'')+'</span></div>';
+  return '<div class="gchd"><button class="gc-back" data-back>&larr; Back</button><h2>'+title+'</h2>'+why+'<span class="note" id="gcNote">'+(gcState()==='in'?'refreshing every 5 seconds':'')+'</span><span id="gcWatch">'+gcWatchHTML()+'</span></div>'; /* v34: Watch in the corner of the title row */
 }
 function card(title,body,cls,extra){ return '<div class="gcard'+(cls?' '+cls:'')+'"><div class="gh"><h3>'+title+'</h3>'+(extra||'')+'</div><div class="gb">'+body+'</div></div>'; }
 function gsec(p,clock){ var c=String(clock||'0:00').split(':'); var t=(+c[0]||0)*60+(+c[1]||0); return p<=3?(p-1)*1200+t:3600+(p-4)*(gcType()===3?1200:300)+t; }
